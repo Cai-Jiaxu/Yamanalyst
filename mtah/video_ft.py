@@ -33,7 +33,12 @@ DS = os.path.join(WORK, "yolo_ball")
 CROP = 640
 IMGSZ = 1024           # crops are enlarged ~1.6x: the ball is ~9 px across at native resolution
 BALL_D = 0.22          # m, ball diameter
-MIN_BOX = 6.0          # px, smallest box we label
+# The label box is a REGION around the ATD ball, not a ball-sized box: the ATD position lands a
+# median ~9 px from the true ball while the ball itself is ~9 px across, so ball-sized boxes often
+# missed the ball and training stalled (run 1: val mAP50 ~0.03 at epoch 15). A ~1.2 m region always
+# contains it, and 1-2 m is all the precision possession needs.
+LABEL_M = 1.2          # m, side of the labelled region
+MIN_BOX = 16.0         # px, smallest box we label
 N_POS = 6000           # crops containing the ball
 N_NEG = 1500           # crops from the same frames away from the ball
 HOLDOUT_FROM = 170000  # video frame: 2nd-half frames from here on are validation only
@@ -47,13 +52,14 @@ def to_pixel(H, x01, y01):
     return v[0] / v[2], v[1] / v[2]
 
 
-def ball_box(H, x01, y01, L, W):
-    """Pixel centre (x, y) and box size for the ball at a pitch position."""
+def ball_box(H, x01, y01, L, W, side_m=LABEL_M):
+    """Pixel centre (x, y) and box size for a side_m region around the ball's pitch position.
+    The box BOTTOM sits on the ATD ground point, which is what detection maps back to the pitch."""
     cx, cy = to_pixel(H, x01, y01)
-    ex, _ = to_pixel(H, x01 + BALL_D / L, y01)
-    _, ey = to_pixel(H, x01, y01 + BALL_D / W)
-    size = max(MIN_BOX, 1.5 * max(abs(ex - cx), abs(ey - cy)))
-    return cx, cy - size / 2, size       # the ATD point is on the ground; lift to the centre
+    ex, _ = to_pixel(H, x01 + side_m / L, y01)
+    _, ey = to_pixel(H, x01, y01 + side_m / W)
+    size = max(MIN_BOX, max(abs(ex - cx), abs(ey - cy)))
+    return cx, cy - size / 2, size
 
 
 def _candidates(m):
