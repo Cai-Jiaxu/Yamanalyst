@@ -39,6 +39,10 @@ def clean_ball(m, hide=None):
     xy = np.stack([m.ball[:, 0] * L, m.ball[:, 1] * W], axis=1).astype(np.float64)
     if hide is not None:
         xy[hide] = np.nan
+    vball = getattr(m, "video_ball", None)
+    if vball is not None:
+        miss = ~np.isfinite(xy[:, 0]) & np.isfinite(vball[:, 0])
+        xy[miss] = vball[miss]
     seen = np.isfinite(xy[:, 0])
     # drop isolated teleports: a point far from both neighbours is a false detection
     for _ in range(2):

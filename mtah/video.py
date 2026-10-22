@@ -91,8 +91,10 @@ def detect(model, m, wanted, imgsz=1920, device="mps", batch=8, log_every=2000, 
                 owner.append(fi)
                 offs.append((x0, y0))
         per = {}
+        names = getattr(model, "names", {}) or {}
+        cls_ids = [0] if len(names) == 1 else [BALL_CLASS]
         for k in range(0, len(crops), batch):
-            res = model.predict(crops[k:k + batch], imgsz=imgsz, classes=[BALL_CLASS],
+            res = model.predict(crops[k:k + batch], imgsz=imgsz, classes=cls_ids,
                                 conf=CONF_MIN, device=device, verbose=False)
             for j, r in enumerate(res):
                 if r.boxes is None or not len(r.boxes):
@@ -189,7 +191,8 @@ def run(model_name="yolo11m", imgsz=1920):
 
 
 
-def probe(n_gaps=12, step=5, seed=0):
+def probe(n_gaps=12, step=5, seed=0, model=None, imgsz=1024, tiles=TILES_2x2, batch=4,
+          device="mps"):
     """Yield on GENUINE missing-ball frames (no ground truth there, so measure plausibility):
     a sampled frame counts if its top candidate is near a player (< 4 m) and within a physically
     possible distance of the previous sample's top candidate (< 30 m/s * dt)."""
@@ -201,7 +204,8 @@ def probe(n_gaps=12, step=5, seed=0):
     rng = np.random.default_rng(seed)
     pick = [gaps[i] for i in sorted(rng.choice(len(gaps), n_gaps, replace=False))]
     wanted = np.concatenate([np.arange(a, b, step) for a, b in pick])
-    det = detect(load_model("yolo11m"), m, wanted, imgsz=1024, tiles=TILES_2x2, batch=4,
+    model = model or load_model("yolo11m")
+    det = detect(model, m, wanted, imgsz=imgsz, tiles=tiles, batch=batch, device=device,
                  log_every=0)
     px, py = m.players[..., 0] * L, m.players[..., 1] * W
     ok, prev, conf_ok = 0, None, 0
@@ -220,6 +224,7 @@ def probe(n_gaps=12, step=5, seed=0):
     print("missing-ball probe: {} frames from {} gaps | top candidate conf>=0.25 on {:.0%} | "
           "near a player AND consistent with previous sample on {:.0%}".format(
               len(wanted), n_gaps, conf_ok / len(wanted), ok / len(wanted)), flush=True)
+    return {"frames": len(wanted), "conf_ok": conf_ok / len(wanted), "plausible": ok / len(wanted)}
 
 
 if __name__ == "__main__":

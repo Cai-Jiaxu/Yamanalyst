@@ -165,7 +165,10 @@ spread of ±0.056 over 16 seeds. Its three-class accuracy without the ball (0.86
 rule system *with* the ball (0.856). The three external variants tie, so the pipeline uses the
 simplest one: external true labels only.
 
-## 7. Current submission and why
+## 7. Submission history
+
+> **Superseded.** The current submission is `final_v1` (§8 and README.md: public spellF1 0.700,
+> bench 0.656). This section records the reasoning at the `fused_ext_v2` stage.
 
 | | public spellF1 | public macroF1 | **masked spellF1** (full-match proxy) | full-match possessions |
 |---|---|---|---|---|

@@ -112,7 +112,9 @@ def dataset(n_pos=N_POS, n_neg=N_NEG):
 
 def train(base="yolo11s", epochs=30, imgsz=IMGSZ, batch=16, device=0):
     from ultralytics import YOLO, settings
+    import ultralytics.engine.trainer as trainer_mod
     settings.update({"sync": False})
+    trainer_mod.check_amp = lambda m: True
     weights = os.path.join(ROOT, "models", base + ".pt")
     model = YOLO(weights if os.path.isfile(weights) else base + ".pt")
     model.train(data=os.path.join(DS, "ball.yaml"), epochs=int(epochs), imgsz=int(imgsz),
@@ -137,16 +139,18 @@ def _detect(model, m, wanted, device, conf=0.05, batch=24):
 def evaluate(device=0, n=600):
     from mtah import video
     m = Match()
+    model = _ft_model()
     cand = _candidates(m)
     val = cand[cand >= HOLDOUT_FROM]
     sample = np.sort(np.random.default_rng(SEED + 1).choice(val, min(n, len(val)),
                                                             replace=False))
-    det = _detect(_ft_model(), m, sample, device)
+    det = _detect(model, m, sample, device)
     acc = video.accuracy(det, m, sample)
     print("held-out (ATD ball visible, frames >= {}): candidate on {:.0%} | some candidate "
           "within 2 m {:.0%} | top-1 within 2 m when present {:.0%}".format(
               HOLDOUT_FROM, acc["with_candidate"], acc["recall_any"],
               acc["top1_within_r_given_candidate"]), flush=True)
+    video.probe(model=model, imgsz=IMGSZ, tiles=TILES, batch=24, device=device)
 
 
 def detect(device=0, out=None):
@@ -162,7 +166,81 @@ def detect(device=0, out=None):
         len(wanted), (time.time() - t) / 60, out, len(det)), flush=True)
 
 
+def merge_track(m, det_path=None, conf_min=0.25, player_r=4.0, max_speed=30.0, max_dt=15):
+    """Filter raw multi-candidate detections into a physically plausible (n, 2) ball track (metres)."""
+    from mtah.data import CACHE_DIR
+    if det_path is None:
+        p1 = os.path.join(CACHE_DIR, "ball_det_ft.npz")
+        p2 = os.path.join(WORK, "ball_det_ft.npz")
+        det_path = p1 if os.path.isfile(p1) else p2
+    det = np.load(det_path)["det"]
+    L, W = m.pitch
+    px, py = m.players[..., 0] * L, m.players[..., 1] * W
+    vball = np.full((m.n, 2), np.nan, dtype=np.float64)
+    if not len(det):
+        return vball
+    order = np.argsort(det[:, 0], kind="mergesort")
+    det = det[order]
+    frames_u, starts = np.unique(det[:, 0].astype(np.int64), return_index=True)
+    ends = np.append(starts[1:], len(det))
+    prev_f, prev_xy = -999, None
+    for fi, s, e in zip(frames_u, starts, ends):
+        cands = det[s:e]
+        cands = cands[cands[:, 3] >= conf_min]
+        if not len(cands):
+            continue
+        pdist = np.nanmin(np.hypot(px[fi, None] - cands[:, 1:2], py[fi, None] - cands[:, 2:3]), axis=1)
+        keep = (pdist < player_r) | (cands[:, 3] >= 0.45)
+        cands = cands[keep]
+        if not len(cands):
+            continue
+        best = cands[np.argmax(cands[:, 3])]
+        if prev_xy is not None and 0 < fi - prev_f <= max_dt:
+            if np.hypot(best[1] - prev_xy[0], best[2] - prev_xy[1]) > max_speed * (fi - prev_f) / m.fps:
+                continue
+        vball[fi] = best[1:3]
+        prev_f, prev_xy = fi, best[1:3]
+    # drop isolated points with no neighbour within 10 frames
+    idx = np.flatnonzero(np.isfinite(vball[:, 0]))
+    if len(idx) >= 3:
+        prev_gap = np.append(999, np.diff(idx))
+        next_gap = np.append(np.diff(idx), 999)
+        isolated = (prev_gap > 10) & (next_gap > 10)
+        vball[idx[isolated]] = np.nan
+    return vball
+
+
+def score(det_path=None):
+    """Compare Bench (masked + public) before and after merging ball_det_ft.npz."""
+    from mtah.bench import Bench, Case
+    from mtah import feats, final, rules
+    from mtah.features import compute
+    from mtah.masking import ball_mask, pace_weights
+    b = Bench()
+    featfn = getattr(feats, final.FEATFN)
+    extra = {k: feats.mirrored(featfn).get(k, []) + feats.augmented(featfn).get(k, [])
+             for k in b.ext}
+    P_base = b.probs(featfn, final.MODEL, extra=extra)
+    b.score("final_v1 (no video)", P_base, final.DECODER, use_rules=False)
+
+    b.m.video_ball = merge_track(b.m, det_path)
+    miss = b.m.graded_mask() & ~np.isfinite(b.m.ball[:, 0])
+    recovered = np.isfinite(b.m.video_ball[miss, 0]).mean()
+    print("video track recovered {:.1%} of missing graded frames".format(recovered), flush=True)
+    f = compute(b.m)
+    b.public = Case("public", b.m, f, rules.run(b.m, f), b.public.Xs, b.gt)
+    weights = pace_weights(f)
+    b.masked = []
+    for s in range(16):
+        fk = compute(b.m, hide=ball_mask(b.m.n, s, weights=weights))
+        b.masked.append(Case("masked{}".format(s), b.m, fk, rules.run(b.m, fk), b.public.Xs, b.gt))
+    P_vid = b.probs(featfn, final.MODEL, extra=extra)
+    b.score("final_v1 + video ball", P_vid, final.DECODER, use_rules=False)
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1]
     args = sys.argv[2:]
-    {"dataset": dataset, "train": train, "evaluate": evaluate, "detect": detect}[cmd](*args)
+    {"dataset": dataset, "train": train, "evaluate": evaluate, "detect": detect,
+     "score": score}[cmd](*args)
+

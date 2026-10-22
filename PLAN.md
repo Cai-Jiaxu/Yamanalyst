@@ -1,3 +1,6 @@
+> **Historical.** This is the first plan, written on day 1 (2026-10-21). For the current state
+> see [README.md](README.md) and [INVESTIGATION.md](INVESTIGATION.md).
+
 # Attack plan: MTAH 2027 Phase 1 (ball possession)
 
 Deadline **17 Nov 2026**. Registration closes **10 Nov**, so make sure all 3–5 team members are registered under the same team name before then.
