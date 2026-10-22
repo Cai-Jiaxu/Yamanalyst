@@ -17,6 +17,7 @@ from scipy.ndimage import uniform_filter1d
 
 SMOOTH = (25, 75)     # frames: +-0.5 s and +-1.5 s context windows
 TREND = 25            # frames: motion measured over +-1 s
+MAX_PLAYER_SPEED = 11.5  # m/s; faster per-slot motion is a track identity switch, not running
 
 
 def _nan_stat(fn, x, mask):
@@ -61,6 +62,8 @@ def compute(m, cam=True):
     # per-slot motion over +-TREND frames, in the home-attack frame
     vx = np.full_like(x, np.nan)
     vx[TREND:-TREND] = (x[2 * TREND:] - x[:-2 * TREND]) / (2 * TREND / m.fps)
+    # a slot that changes identity inside the window produces an impossible speed; drop it
+    vx[np.abs(vx) > MAX_PLAYER_SPEED] = np.nan
 
     cols = {}
     for name, mask, s in (("h", home & ok, 1.0), ("a", ~home & ok, -1.0)):

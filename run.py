@@ -21,7 +21,7 @@ from mtah.data import Match  # noqa: E402
 from mtah.features import compute  # noqa: E402
 from mtah.report import report  # noqa: E402
 
-METHODS = ("fused_ext", "fused_own", "rules")
+METHODS = ("final", "fused_ext", "fused_own", "rules")
 
 
 def predict(method, m, f):
@@ -30,6 +30,10 @@ def predict(method, m, f):
     if method == "rules":
         return rule_labels
     from mtah import decode, shape, shape_model
+    if method == "final":
+        # learned model on external true labels with rule labels as features (mtah/final.py)
+        from mtah import final
+        return final.predict(m, f, rule_labels)[0]
     if method == "fused_ext":
         # ball-free model trained on public external tracking with true labels, degraded to
         # our noise (W8, analysis/ext_pipeline.py)
@@ -51,7 +55,7 @@ def write(path, labels):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--method", default="fused_ext", choices=METHODS)
+    ap.add_argument("--method", default="final", choices=METHODS)
     ap.add_argument("--name", default=None)
     args = ap.parse_args()
     name = args.name or args.method

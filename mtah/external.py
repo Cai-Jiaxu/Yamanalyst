@@ -23,6 +23,10 @@ sys.path.insert(0, ROOT)
 from mtah.data import CACHE_DIR  # noqa: E402
 
 EXT_DIR = os.path.join(ROOT, "external")
+# Frames of nothing between the two halves of an external match: longer than every temporal
+# window in the feature code (+-250 frames smoothing, 750-frame since/until caps), so no feature
+# computed near one half's edge can see the other half -- where the teams have switched ends.
+HALF_GAP = 1500
 IDSSE_MATCHES = ("J03WPY", "J03WN1", "J03WMX", "J03WOH", "J03WQQ", "J03WOY", "J03WR9")
 SECTIONS = ("firstHalf", "secondHalf")
 
@@ -73,7 +77,7 @@ def parse_idsse(match):
         n0, n1 = balls[0][2].min(), balls[0][2].max()
         offsets[sec] = pos - n0
         halves.append((h, pos, pos + (n1 - n0)))
-        pos += (n1 - n0) + 2
+        pos += (n1 - n0) + 1 + HALF_GAP
     n = pos
 
     persons = [s for s in sets if s[1] != "ball"]
@@ -115,7 +119,7 @@ def _metrica_tracking(path):
             t.iloc[:, [bi, bi + 1]].values)
 
 
-def metrica_labels(events, n, fps=25):
+def metrica_labels(events, n, fps=25, period_offset=None):
     """Per-frame H/A/D from Metrica sample events (frames are 1-based in the files).
 
     Possession goes to the team of each PASS, RECOVERY, SET PIECE or SHOT at its start frame.
@@ -129,7 +133,8 @@ def metrica_labels(events, n, fps=25):
     for _, e in ev.iterrows():
         team = "H" if e["Team"] == "Home" else "A"
         typ, sub = e["Type"], str(e["Subtype"]) if e["Subtype"] == e["Subtype"] else ""
-        s0, s1 = int(e["Start Frame"]) - 1, int(e["End Frame"]) - 1
+        shift = (period_offset or {}).get(int(e["Period"]), 0)
+        s0, s1 = int(e["Start Frame"]) - 1 + shift, int(e["End Frame"]) - 1 + shift
         if typ in ("PASS", "RECOVERY", "SET PIECE"):
             marks.append((s0, team))
         elif typ == "SHOT":
@@ -156,8 +161,10 @@ def parse_metrica(game):
     base = os.path.join(EXT_DIR, "metrica", "Sample_Game_{}_".format(game))
     per, frame, hxy, ball = _metrica_tracking(base + "RawTrackingData_Home_Team.csv")
     _, _, axy, _ = _metrica_tracking(base + "RawTrackingData_Away_Team.csv")
-    n = int(frame.max())
-    idx = frame - 1
+    # the sample files number frames straight through both halves; open a HALF_GAP between them
+    offset = {1: 0, 2: HALF_GAP}
+    idx = frame - 1 + np.where(per == 2, HALF_GAP, 0)
+    n = int(idx.max()) + 1
     P = hxy.shape[1] + axy.shape[1]
     players = np.full((n, P, 3), np.nan, dtype=np.float32)
     players[idx, :, :2] = np.concatenate([hxy, axy], axis=1)
@@ -175,7 +182,7 @@ def parse_metrica(game):
         f = idx[per == p]
         halves.append((p, int(f.min()), int(f.max())))
     events = pd.read_csv(base + "RawEventsData.csv")
-    labels = metrica_labels(events, n)
+    labels = metrica_labels(events, n, period_offset=offset)
     outside = np.ones(n, dtype=bool)
     for _, a, z in halves:
         outside[a:z + 1] = False
@@ -208,6 +215,24 @@ class ExtMatch:
         for _, a, b in self.halves:
             m[a:b + 1] = True
         return m & (self.labels != "X")
+
+    def mirrored(self, kind):
+        """'lr': reflect across the long axis (y -> 1-y), labels unchanged. 'swap': exchange the
+        teams -- every slot changes side and H <-> A in the labels."""
+        if kind == "lr":
+            players = self.players.copy()
+            players[..., 1] = 1 - players[..., 1]
+            ball = self.ball.copy()
+            ball[:, 1] = 1 - ball[:, 1]
+            return self.copy_with(players=players, ball=ball)
+        if kind == "swap":
+            other = self.copy_with(team=(1 - self.team).astype(np.int8))
+            lab = self.labels.copy()
+            lab[self.labels == "H"] = "A"
+            lab[self.labels == "A"] = "H"
+            other.labels = lab
+            return other
+        raise ValueError(kind)
 
     def copy_with(self, players=None, ball=None, team=None):
         """Shallow copy with replaced arrays -- used by the noise simulator."""

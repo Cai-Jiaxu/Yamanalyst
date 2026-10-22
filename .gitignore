@@ -68,3 +68,5 @@ env/
 cache/
 work/
 external/
+models/
+colab_upload/

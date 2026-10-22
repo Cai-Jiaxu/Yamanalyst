@@ -46,12 +46,12 @@ def reference_stats():
     return _REF
 
 
-def _ball_mask(labels, play, rng, ref):
+def _ball_mask(labels, play, rng, ref, dead_bias=DEAD_BIAS, miss_frac=None):
     n = len(labels)
-    w = np.where(labels == "D", DEAD_BIAS, 1.0) * play
+    w = np.where(labels == "D", dead_bias, 1.0) * play
     w = w / w.sum()
     hide = np.zeros(n, dtype=bool)
-    target = ref["miss_frac"] * play.sum()
+    target = (miss_frac if miss_frac is not None else ref["miss_frac"]) * play.sum()
     while (hide & play).sum() < target:
         start = rng.choice(n, p=w)
         length = int(rng.choice(ref["gap_lengths"]))
@@ -59,7 +59,8 @@ def _ball_mask(labels, play, rng, ref):
     return hide
 
 
-def degrade(m, seed=0, ref=None):
+def degrade(m, seed=0, ref=None, miss_frac=None, dead_bias=DEAD_BIAS):
+    """miss_frac / dead_bias override the calibrated ball-loss level, for augmentation."""
     ref = ref or reference_stats()
     rng = np.random.default_rng(seed)
     L, W = m.pitch
@@ -68,7 +69,7 @@ def degrade(m, seed=0, ref=None):
     ball = m.ball.copy()
     ball[:, 0] += rng.normal(0, BALL_NOISE / L, m.n)
     ball[:, 1] += rng.normal(0, BALL_NOISE / W, m.n)
-    ball[_ball_mask(m.labels, play, rng, ref)] = np.nan
+    ball[_ball_mask(m.labels, play, rng, ref, dead_bias, miss_frac)] = np.nan
     ball[:, 2] = np.nan  # our ATD ball speed column is ~90% empty; never rely on it
 
     players = m.players.copy()

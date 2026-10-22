@@ -120,7 +120,7 @@ if __name__ == "__main__":
 # trained on our own pseudo-labels (team accuracy 0.93 vs 0.83 with no ball input). External
 # sources have no tactical camera, so these models use cam=False features everywhere.
 
-EXT_NOISE_VERSION = "v2"
+EXT_NOISE_VERSION = "v4"
 
 
 def external_set(names=None):

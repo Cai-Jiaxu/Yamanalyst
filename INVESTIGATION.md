@@ -195,3 +195,54 @@ The output is byte-identical across runs (sha256 `029547eb…`).
 
 Baselines for reference: `baseline_smooth50` public 0.326 (full match 0.243), `baseline_smooth125`
 public 0.424 (full match 0.224).
+
+## 8. Rounds 1–2: learned fusion, augmentation, leak fixes (`mtah/bench.py`)
+
+**Benchmark.** `bench` is the mean of two numbers:
+- spellF1 on 9 external matches noised to look like ours. They are split into 3 folds by match,
+  and each fold is scored by a model trained on the other two.
+- our masked spellF1, from 16 seeds.
+
+The masked test hides the ball in stretches placed preferentially when players are walking. It
+also hides the ball for 30 s after the window, so look-ahead features cannot peek. Each run
+prints an error breakdown: split, merge, boundary drift, missed and spurious possessions.
+
+| step | bench | ext | masked | public |
+|---|---|---|---|---|
+| shape-only + rule fusion (`fused_ext_v2`) | 0.469 | 0.469 | 0.468 | 0.434 |
+| + longer context (±5/10 s, lead–lag trends) | 0.483 | 0.496 | 0.470 | 0.485 |
+| + ball/touch features + **rule label as a feature, no rule term in the decoder** | 0.530 | 0.542 | 0.518 | 0.511 |
+| E6 = both, decoder retuned (emission weight 0.75, dead cost 12) | 0.575 | 0.574 | 0.576 | 0.625 |
+| + rule internals, 600 trees (E7) | 0.590 | 0.586 | 0.595 | 0.648 |
+| + k-nearest, approach speed, pitch control, slot-speed clipping (E8) | 0.595 | 0.589 | 0.600 | 0.634 |
+| + left/right and home/away mirrors (E9) | 0.634 | 0.612 | 0.657 | 0.632 |
+| leak fixes (half gaps, edge clamping), mirrors + noise copies (R0) | 0.649 | 0.621 | 0.677 | 0.662 |
+| + minimum dead-ball length 1 s | 0.653 | 0.622 | 0.684 | 0.662 |
+| **+ set-piece geometry (R1), the submission** | **0.656** | 0.617 | **0.695** | **0.675** |
+
+**Measured and not adopted:**
+
+| change | effect |
+|---|---|
+| boundary head modulating switch costs | ±0.001 |
+| EM label-shift prior | −0.017 |
+| IDSSE relabelled to our convention | −0.002 |
+| lower switch cost | ±0.001 at 6–9; −0.013 at 18 |
+| boundary snapping | 0 |
+| kickoff evidence | −0.029 → −0.008 after two guards |
+
+The kickoff detector finds both of our half-start kickoffs within 5 frames and the after-goal
+kickoffs with the right team. The harm comes from external data, whose tracking starts at the
+kick, so an after-goal kickoff gets mistaken for a half's opening one. Possible gain on our match
+is about 5 possessions; the decoder does not use it.
+
+**Where the remaining error is** (external, per 100 true possessions): missed 22, boundary
+drift 19, merges 11, spurious 3.6, splits 2.1, predicted/true 0.71. The decoder is conservative
+on purpose; a large part of "missed" is IDSSE's brief possessions, which our ground truth would
+not count.
+
+**Video (W7, unblocked).** Off-the-shelf COCO YOLO with tiling finds the ball within 2 m on 59% of
+frames where the tracker sees it. On genuine missing-ball frames its top candidate is plausible
+only 18% of the time. `mtah/video_ft.py` fine-tunes a detector on this camera using ATD-projected
+labels (the projection is unbiased: +0.5 / +0.8 px). It runs on Colab GPU via
+`colab/ball_detector.ipynb`, with data in the team's Google Drive and Gemini off.
