@@ -101,7 +101,10 @@ see `analysis/decoder_sweep.py` and `analysis/round2.py`. Differences under abou
 
 ## Video ball detection (GPU, Colab)
 
-The tracker loses the ball on 41% of graded frames. This is the biggest open lever.
+The tracker loses the ball on 41% of graded frames. The fine-tuned detector works (79% of top
+picks within 2 m on held-out frames), but merging its track into the current model **lowers** the
+bench (INVESTIGATION.md §9), so `final_v1` does not use it. The next step, if anyone picks it up,
+is a separate "video ball" feature channel trained with simulated video-like noise.
 `mtah/video_ft.py` fine-tunes a small YOLO on our own video, using the ATD ball projected through
 the homography as automatic labels, then detects on the missing frames.
 

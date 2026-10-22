@@ -143,7 +143,8 @@ class Bench:
             print("bench ready in {:.0f} s: {} external matches, {} mask seeds".format(
                 time.time() - t, len(self.ext), len(self.masked)), flush=True)
 
-    def probs(self, featfn, model_params=None, extra=None, boundary=False, relabel=None):
+    def probs(self, featfn, model_params=None, extra=None, boundary=False, relabel=None,
+              return_models=False):
         """Fit the three fold models once; return {case name: (n, 3) probabilities}.
 
         extra: optional {match name: [(X, labels, mask), ...]} -- augmented copies of a match,
@@ -178,7 +179,7 @@ class Bench:
             P[c.name] = np.mean([clf.predict_proba(Xo) for clf in models], axis=0)
             if boundary:
                 P["B:" + c.name] = np.mean([b.predict_proba(Xo)[:, 1] for b in bmodels], axis=0)
-        return P
+        return (P, models) if return_models else P
 
     def train_prior(self):
         """(H, A, D) frequency over all external labelled frames -- the models' training mix."""

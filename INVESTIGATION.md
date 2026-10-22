@@ -93,7 +93,7 @@ missing-ball regime.
 | W4 | Ball-free shape model on pseudo-labels | **done** | 88% team accuracy with no ball |
 | W5 | Viterbi fusion decoder | **done**, costs tuned on external labels | 12 / 6, mid-plateau |
 | W6 | Ball+shape model, bagging, capacity | **done: hit the noise floor** | ball columns add nothing once the leak was fixed (they double-count the ball). Capacity beyond 300 trees is flat. Bagging kept for variance |
-| W7 | Video: ball detection (YOLO + homography), hand-labelled validation | **blocked: videos missing** | — |
+| W7 | Video ball detection: self-supervised YOLO on Colab | **done, not adopted** | §9: detector works (79% top-1 within 2 m), but the merged track lowers the bench (0.656 → 0.642/0.646) |
 | W8 | External tracking data: IDSSE + Metrica sample (PFF needs a personal sign-up form, skipped) | **done** | §6: masked 0.35 → 0.47 |
 | W9 | Technical document and public repo hygiene | not started | — |
 
@@ -249,3 +249,35 @@ frames where the tracker sees it. On genuine missing-ball frames its top candida
 only 18% of the time. `mtah/video_ft.py` fine-tunes a detector on this camera using ATD-projected
 labels (the projection is unbiased: +0.5 / +0.8 px). It runs on Colab GPU via
 `colab/ball_detector.ipynb`, with data in the team's Google Drive and Gemini off.
+
+## 9. Video ball detection (W7): built, measured, not adopted
+
+`mtah/video_ft.py` + `colab/ball_detector.ipynb`, run on a Colab A100 with the data in the team
+Drive (Gemini off).
+
+| | COCO YOLO (tiled) | fine-tuned on ATD-projected labels |
+|---|---|---|
+| held-out frames, top candidate within 2 m of the ATD ball (when present) | 51% | **79%** |
+| genuine missing-ball frames, plausible top candidate | 18% | **26%** |
+
+First attempt: ball-sized label boxes (~9 px) stalled training at val mAP50 ~0.03, because the
+ATD position itself lands ~9 px from the ball. 1.2 m region labels fixed it (mAP50 0.27).
+Detection on all 71,602 missing-ball frames took 85 min. After the plausibility filter
+(`merge_track`) the track covers 9.7% (conf ≥ 0.25) or 14.1% (conf ≥ 0.15) of missing graded
+frames.
+
+**Effect on the submission model** (`analysis/video_score.py`: fold models fitted once, our
+match re-predicted with the video track attached):
+
+| | bench | masked | public spellF1 / macroF1 |
+|---|---|---|---|
+| `final_v1`, no video | **0.656** | **0.695** | 0.675 / 0.901 |
+| + video, conf ≥ 0.25 | 0.642 | 0.666 | 0.675 / 0.902 |
+| + video, conf ≥ 0.15 | 0.646 | 0.676 | 0.675 / 0.884 |
+
+This is worse even though the masked test favours video (its hidden frames are ones the ATD saw).
+The model was trained on external data where a ball position is exact or absent. Video
+detections are neither: ~1 in 5 top picks is wrong and the rest are good to ~2 m. Feeding them
+through the same channel as the ATD ball misleads the features. A fix would be a separate
+"video ball" channel plus video-like noisy balls simulated in the external training data. That
+is real work with an uncertain payoff, so `final_v1` stays.
