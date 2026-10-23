@@ -127,3 +127,21 @@ not.
 | 4 | Minimum dead-ball dwell inside Viterbi; `is_metrica` indicator | Post-hoc `min_dead = 25` already gave +0.004 | Dwell in Viterbi: **Test**, small. `is_metrica`: **No**, our match has no right value for it (IDSSE relabel measured −0.002) |
 | 5 | TCN / BiGRU refiner | — | **Defer**, as before |
 | Omitted | — | The detector's training pool includes the public window (`cand < 170000`) | **Fix before any further video scoring**: exclude frames 11185–19435 from training |
+
+# Review of the fifth feedback (compute split and iteration process)
+
+Its premise was "ignore the LLM compliance part". We cannot: the T&Cs forbid giving match data or
+video to a hosted LLM, Claude included. Everything that depends on an LLM looking at frames is
+rejected; the same work done by a person with local tools is fine.
+
+| # | claim | verdict | why |
+|---|---|---|---|
+| 1 | Cache fold models and probabilities by default | **Do** (ROADMAP I1) | Three scripts refitted the same final_v1 models from scratch |
+| 2 | Never run two refits at once on the Mac | **Do** (ROADMAP rule 5) | We did, and both slowed down |
+| 3 | Fast screen (base matches, no augmentation, 300 trees) with a "+0.003 to pass" gate | **Do, as a loser filter only** (I2) | +0.003 is under the noise floor, and a screen without mirrors can rank features differently; it may drop clear losers, never adopt |
+| 4 | Colab GPU for CatBoost / XGBoost / sequence models | **Test, for screening** (I4) | Plausible speed-up (unmeasured). GPU trees are not always bit-for-bit deterministic, and `run.py` must reproduce on CPU |
+| 5 | Hand-labelled 2nd-half set as a third bench column | **Do** (R3) | Already planned |
+| 6 | An LLM inspecting frames, transition tables, missing-ball frames; building R3 itself | **No** | T&Cs |
+| 7 | A helper that pre-marks candidate boundaries from model output for the labeller | **No** | Labels steered by the model cannot validate it (PLAN.md) |
+| 8 | "R3 in 45 minutes" | **No** | A few hours per window is realistic; eye labels also follow a different convention from the tracker-generated GT |
+| 9 | `ball_value.py` passes stale rule labels and crashes | **No (checked)** | `full_plus3` recomputes the rules from the new features; stored rule labels are only read with `use_rules=True` |

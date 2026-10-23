@@ -262,6 +262,42 @@ def full_plus3(m, f, Xs):
     return np.hstack([full_plus2(m, f, Xs), setpiece_block(m, f)]).astype(np.float32)
 
 
+MAX_SLOT_SPEED = 11.5   # m/s; faster is an identity switch, not a sprint
+
+
+def velocity_control(m, f):
+    """ROADMAP R8: pitch control with each player carried 0.7 s along his own velocity before
+    running (Spearman 2018), at the ball and at the ball 1 s ahead. Velocities are +-3-frame
+    differences; implausible ones (identity switches) count as standing."""
+    L, W = m.pitch
+    seen = f["seen"]
+    px, py = m.players[..., 0] * L, m.players[..., 1] * W
+    vx, vy = np.zeros_like(px), np.zeros_like(py)
+    vx[3:-3] = (px[6:] - px[:-6]) / (6 / m.fps)
+    vy[3:-3] = (py[6:] - py[:-6]) / (6 / m.fps)
+    bad = ~np.isfinite(vx) | ~np.isfinite(vy) | (np.hypot(vx, vy) > MAX_SLOT_SPEED)
+    vx[bad], vy[bad] = 0.0, 0.0
+    qx, qy = px + 0.7 * vx, py + 0.7 * vy
+    home = (m.team == 0)[None]
+
+    def control(tx, ty):
+        tt = 0.7 + np.hypot(qx - tx[:, None], qy - ty[:, None]) / 5.0
+        th = np.nanmin(np.where(home, tt, np.nan), axis=1)
+        ta = np.nanmin(np.where(~home, tt, np.nan), axis=1)
+        return 1 / (1 + np.exp(-(ta - th) / 0.45))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        c0 = np.where(seen, control(f["bx"], f["by"]), np.nan)
+        c1 = np.where(seen, control(f["bx"] + np.nan_to_num(f["vx"]),
+                                    f["by"] + np.nan_to_num(f["vy"])), np.nan)
+    return np.stack([c0, c1], 1).astype(np.float32)
+
+
+def full_plus4(m, f, Xs):
+    """R8: full_plus3 + velocity-projected pitch control."""
+    return np.hstack([full_plus3(m, f, Xs), velocity_control(m, f)]).astype(np.float32)
+
+
 def controlled_labels(labels, min_frames=25):
     """IDSSE -> our convention: an opposite-team spell shorter than min_frames with the SAME team
     on both sides is a touch, not a change of possession. Training labels only."""

@@ -24,6 +24,8 @@ PARAMS = {
     "cost_dead": 6.0,     # nats per alive<->dead switch
     "min_dead": 0,        # frames; dead spells shorter than this are absorbed (min_duration())
     "min_poss": 0,        # frames; possessions shorter than this, flanked by one team, absorbed
+    "dwell": 0,           # frames; >0 makes every dead spell at least this long INSIDE the
+                          # Viterbi search (viterbi_dwell), instead of absorbing short ones after
     "em_prior": False,    # adapt class priors to this match by EM (label_shift())
     "kickoff": False,     # add kickoff evidence (mtah/kickoff.py): True / 'all' or 'half'
                           # (see kickoff.evidence)
@@ -52,6 +54,40 @@ def viterbi(logE, T, bonus=None):
     for t in range(n - 1, 0, -1):
         path[t - 1] = back[t, path[t]]
     return path
+
+
+def viterbi_dwell(logE, T, k, bonus=None):
+    """viterbi() with a minimum dead-ball length of k frames, as a chain of k D sub-states:
+    H/A enter D_1, D_i must go on to D_(i+1), and only D_k may stay or leave. A dead spell is then
+    priced as a whole, so the search picks the best path among those obeying the minimum, where
+    post-hoc absorption (min_duration) relabels a short spell after the fact."""
+    n = len(logE)
+    S = 2 + k
+    macro = np.array([0, 1] + [2] * k)
+    TT = np.full((S, S), -np.inf)
+    TT[0, 0] = TT[1, 1] = 0.0
+    TT[0, 1], TT[1, 0] = T[0, 1], T[1, 0]
+    TT[0, 2], TT[1, 2] = T[0, 2], T[1, 2]
+    for i in range(2, S - 1):
+        TT[i, i + 1] = 0.0
+    TT[S - 1, S - 1] = 0.0
+    TT[S - 1, 0], TT[S - 1, 1] = T[2, 0], T[2, 1]
+    off = (macro[:, None] != macro[None, :]).astype(float)
+    E = logE[:, macro]
+    back = np.zeros((n, S), dtype=np.int16)
+    score = np.full(S, -np.inf)
+    score[[0, 1, S - 1]] = E[0, [0, 1, S - 1]]     # a half may open in a dead ball
+    for t in range(1, n):
+        cand = score[:, None] + TT
+        if bonus is not None:
+            cand = cand + bonus[t] * off
+        back[t] = cand.argmax(axis=0)
+        score = cand.max(axis=0) + E[t]
+    path = np.zeros(n, dtype=np.int16)
+    path[-1] = score.argmax()
+    for t in range(n - 1, 0, -1):
+        path[t - 1] = back[t, path[t]]
+    return macro[path]
 
 
 def label_shift(P, train_prior, iters=50):
@@ -165,8 +201,11 @@ def decode(m, rule_labels, P_shape, seen, p=PARAMS, f=None, B=None):
         logE = logE + kickoff.evidence(m, f, mode=mode)
     bonus = boundary_bonus(B, p["w_bound"]) if B is not None and p.get("w_bound", 0) else None
     for _, a, b in m.halves:
-        out[a:b + 1] = STATES[viterbi(logE[a:b + 1], T,
-                                      None if bonus is None else bonus[a:b + 1])]
+        bb = None if bonus is None else bonus[a:b + 1]
+        if p.get("dwell", 0):
+            out[a:b + 1] = STATES[viterbi_dwell(logE[a:b + 1], T, int(p["dwell"]), bb)]
+        else:
+            out[a:b + 1] = STATES[viterbi(logE[a:b + 1], T, bb)]
     if p.get("min_dead", 0) or p.get("min_poss", 0):
         out = min_duration(out, p.get("min_dead", 0), p.get("min_poss", 0))
     if p.get("snap_r", 0) > 0 and f is not None:

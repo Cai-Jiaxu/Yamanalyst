@@ -1,6 +1,7 @@
 """ROADMAP R2: how much is less missing ball worth to final_v1, in-distribution?
 
-    uv run python analysis/ball_value.py
+    uv run python analysis/ball_value.py            # all three levels
+    uv run python analysis/ball_value.py 0.10       # one level (models are cached after the fit)
 
 The fold models are fitted once, as for final_v1, and saved to cache/models_final_v1.joblib
 for later decoder or evaluation work. Then:
@@ -78,7 +79,10 @@ def main():
 
     base_ext, base_masked = b.ext, b.masked
     weights = pace_weights(b.public.f)
-    for ext_target, mask_frac in ((None, 0.45), (0.25, 0.25), (0.10, 0.10)):
+    levels = ((None, 0.45), (0.25, 0.25), (0.10, 0.10))
+    if len(sys.argv) > 1:
+        levels = [(float(sys.argv[1]), float(sys.argv[1]))]
+    for ext_target, mask_frac in levels:
         ext = {}
         for k, c in base_ext.items():
             if ext_target is None:

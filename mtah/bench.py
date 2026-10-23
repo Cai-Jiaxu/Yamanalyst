@@ -36,13 +36,43 @@ MODEL_DEFAULTS = {"max_iter": 300, "learning_rate": 0.05, "max_leaf_nodes": 31,
                   "min_samples_leaf": 100, "l2_regularization": 1.0}
 
 
+SCREEN = {"max_iter": 300}   # ROADMAP rule 7: fast screen, with no mirror or noise copies
+
+
+class Averaged:
+    """Mean of several classifiers' probabilities (ROADMAP R5: a second model family)."""
+
+    def __init__(self, models):
+        self.models = models
+
+    def predict_proba(self, X):
+        return np.mean([c.predict_proba(X) for c in self.models], axis=0)
+
+
+def _catboost(X, y, params):
+    from catboost import CatBoostClassifier
+    clf = CatBoostClassifier(iterations=int(params.get("max_iter", 600)), depth=6,
+                             learning_rate=params.get("cb_learning_rate", 0.1), l2_leaf_reg=3.0,
+                             loss_function="MultiClass", random_seed=0, thread_count=8,
+                             verbose=False, allow_writing_files=False)
+    return clf.fit(X, y)
+
+
 def _fit(X, labels, mask, params, step=sm.STEP):
+    """params['family']: 'hgb' (default, sklearn trees), 'catboost', or 'both' (their mean)."""
     idx = np.flatnonzero(mask)[::step]
     y = np.array([{"H": 0, "A": 1, "D": 2}[c] for c in labels[idx]])
-    clf = HistGradientBoostingClassifier(early_stopping=False, random_state=0,
-                                         **dict(MODEL_DEFAULTS, **params))
-    clf.fit(X[idx], y)
-    return clf
+    params = dict(params)
+    family = params.pop("family", "hgb")
+    out = []
+    if family in ("hgb", "both"):
+        hp = {k: v for k, v in params.items() if k != "cb_learning_rate"}
+        clf = HistGradientBoostingClassifier(early_stopping=False, random_state=0,
+                                             **dict(MODEL_DEFAULTS, **hp))
+        out.append(clf.fit(X[idx], y))
+    if family in ("catboost", "both"):
+        out.append(_catboost(X[idx], y, params))
+    return out[0] if len(out) == 1 else Averaged(out)
 
 
 def taxonomy(gt, pred):
@@ -133,6 +163,14 @@ class Bench:
         Xs, _ = shape.compute(self.m, cam=False)
         f = compute(self.m)
         self.public = Case("public", self.m, f, rules.run(self.m, f), Xs, self.gt)
+        # hand-labelled validation windows (ROADMAP R3, mtah/label_tool.py), scored on the same
+        # probabilities as the public window
+        self.val = None
+        vgt = load_val()
+        if vgt is not None:
+            self.val = Case("val", self.m, f, self.public.R, Xs, vgt)
+            lab = np.array(pm.LABELS)[vgt]
+            self.val_poss = int(np.sum(np.isin(lab[1:], ["H", "A"]) & (lab[1:] != lab[:-1])))
         self.masked = []
         weights = pace_weights(f)
         for s in MASK_SEEDS:
@@ -144,12 +182,24 @@ class Bench:
                 time.time() - t, len(self.ext), len(self.masked)), flush=True)
 
     def probs(self, featfn, model_params=None, extra=None, boundary=False, relabel=None,
-              return_models=False):
+              return_models=False, key=None, fold_extra=None):
         """Fit the three fold models once; return {case name: (n, 3) probabilities}.
 
         extra: optional {match name: [(X, labels, mask), ...]} -- augmented copies of a match,
-        added only to folds that train on that match (never to the fold that scores it)."""
+        added only to folds that train on that match (never to the fold that scores it).
+        key: optional cache name. The fold models are saved to cache/models_<key>.joblib and
+        reloaded instead of refitted next time; the key must change whenever featfn, params,
+        extra or relabel do. Probabilities are always recomputed, so cases may be rebuilt.
+        fold_extra: optional [[(X, labels, mask), ...] per fold] added to that fold's training
+        only -- e.g. our own match pseudo-labelled by that fold's model (ROADMAP R4)."""
+        import joblib
         model_params = model_params or {}
+        path = os.path.join(CACHE_DIR, "models_{}.joblib".format(key)) if key else None
+        cached = joblib.load(path) if path and os.path.isfile(path) else None
+        if isinstance(cached, list):    # analysis/ball_value.py's format: models only
+            cached = {"models": cached, "bmodels": []}
+        if cached is not None and boundary and not cached["bmodels"]:
+            cached = None
         X = {k: featfn(c.m, c.f, c.Xs) for k, c in self.ext.items()}
         lab = {k: np.array(pm.LABELS)[c.gt] for k, c in self.ext.items()}
         # training labels may follow a different convention than the scoring labels
@@ -157,19 +207,29 @@ class Bench:
                 for k, v in lab.items()}
         msk = {k: c.gt != pm.LABELS.index("X") for k, c in self.ext.items()}
         P, models, bmodels = {}, [], []
-        for fold in FOLDS:
-            train = [k for k in self.ext if k not in fold]
-            Xt, yt, mt = [X[k] for k in train], [tlab[k] for k in train], [msk[k] for k in train]
-            for k in train:
-                for xe, ye, me in (extra or {}).get(k, []):
-                    if relabel and k.startswith("idsse"):
-                        ye = relabel(ye)
+        for i, fold in enumerate(FOLDS):
+            if cached is not None:
+                clf = cached["models"][i]
+                models.append(clf)
+                if boundary:
+                    bclf = cached["bmodels"][i]
+                    bmodels.append(bclf)
+            else:
+                train = [k for k in self.ext if k not in fold]
+                Xt = [X[k] for k in train]
+                yt, mt = [tlab[k] for k in train], [msk[k] for k in train]
+                for k in train:
+                    for xe, ye, me in (extra or {}).get(k, []):
+                        if relabel and k.startswith("idsse"):
+                            ye = relabel(ye)
+                        Xt.append(xe), yt.append(ye), mt.append(me)
+                for xe, ye, me in (fold_extra or [[]] * len(FOLDS))[i]:
                     Xt.append(xe), yt.append(ye), mt.append(me)
-            clf = _fit(np.vstack(Xt), np.concatenate(yt), np.concatenate(mt), model_params)
-            models.append(clf)
-            if boundary:
-                bclf = _fit_boundary(Xt, yt, mt, model_params)
-                bmodels.append(bclf)
+                clf = _fit(np.vstack(Xt), np.concatenate(yt), np.concatenate(mt), model_params)
+                models.append(clf)
+                if boundary:
+                    bclf = _fit_boundary(Xt, yt, mt, model_params)
+                    bmodels.append(bclf)
             for k in fold:
                 P[k] = clf.predict_proba(X[k])
                 if boundary:
@@ -179,6 +239,8 @@ class Bench:
             P[c.name] = np.mean([clf.predict_proba(Xo) for clf in models], axis=0)
             if boundary:
                 P["B:" + c.name] = np.mean([b.predict_proba(Xo)[:, 1] for b in bmodels], axis=0)
+        if path and cached is None:
+            joblib.dump({"models": models, "bmodels": bmodels}, path)
         return (P, models) if return_models else P
 
     def train_prior(self):
@@ -196,6 +258,8 @@ class Bench:
             res[k.split("_")[0]].append(self._score(c, P[k], p, use_rules, self._tax,
                                                     P.get("B:" + k)))
         pub = self._score(self.public, P["public"], p, use_rules, B=P.get("B:public"))
+        val = None if self.val is None else \
+            self._score(self.val, P["public"], p, use_rules, B=P.get("B:public"))
         masked = np.array([self._score(c, P[c.name], p, use_rules, B=P.get("B:" + c.name))
                            for c in self.masked])
         out = {
@@ -203,6 +267,7 @@ class Bench:
             "ext": np.mean(res["idsse"] + res["metrica"], axis=0),
             "public": np.array(pub), "masked": masked.mean(axis=0),
             "masked_sd": masked[:, 0].std(),
+            "val": None if val is None else np.array(val),
         }
         out["bench"] = (out["ext"][0] + out["masked"][0]) / 2
         out["taxonomy"] = dict(self._tax)
@@ -212,6 +277,9 @@ class Bench:
                       name, out["bench"], *out["ext"], out["idsse"][0], out["metrica"][0],
                       *out["masked"], *out["public"], time.time() - (t0 or time.time())),
                   flush=True)
+            if val is not None:
+                print("{:<34} val (hand-labelled, {} possessions) {:.3f}/{:.3f}".format(
+                    "", self.val_poss, *val), flush=True)
             t = out["taxonomy"]
             print("{:<34} ext errors per 100 true possessions: split {:.1f} merge {:.1f} drift "
                   "{:.1f} missed {:.1f} spurious {:.1f} | pred/true {:.2f}".format(
@@ -219,6 +287,13 @@ class Bench:
                                                              "spurious")),
                       t["n_pred"] / t["n_gt"]), flush=True)
         return out
+
+    def screen(self, name, featfn, dec_params=None, model_params=None, key=None):
+        """Fast screen (ROADMAP rule 7): 9 base matches, no augmentation, 300 trees. It only
+        drops clear losers; adoption needs the full fit."""
+        key = "screen_" + (key or featfn.__name__)
+        P = self.probs(featfn, dict(SCREEN, **(model_params or {})), key=key)
+        return self.score(name, P, dec_params, use_rules=False, t0=time.time())
 
     def evaluate(self, name, featfn, model_params=None, dec_params=None, use_rules=True,
                  extra=None, verbose=True, boundary=False):
@@ -236,6 +311,20 @@ class Bench:
             for k, v in taxonomy(c.gt, codes).items():
                 tax[k] = tax.get(k, 0) + v
         return r["spell_f1_mean"], r["macro_f1"]
+
+
+def load_val(folder=None):
+    """Code array over the whole match from every work/labels/*.csv (X elsewhere), or None."""
+    import glob
+    folder = folder or os.path.join(os.path.dirname(CACHE_DIR), "work", "labels")
+    paths = sorted(glob.glob(os.path.join(folder, "*.csv")))
+    if not paths:
+        return None
+    lab = None
+    for path in paths:
+        x = pm.read_label_csv(path)["label"].astype(str).str.strip().str.upper().values
+        lab = x.copy() if lab is None else np.where(x != "X", x, lab)
+    return pm.label_codes(lab)
 
 
 def shape_only(m, f, Xs):

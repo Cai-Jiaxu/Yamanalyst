@@ -381,3 +381,92 @@ Two fixes, both algorithmic:
 pre-kickoff stretch, which goes from 19 spells to 2 (the last 5 frames before the detected kick
 are not forced). Full-match possessions 292 → 282; public spellF1 unchanged at 0.700. Adopted
 on "no harm on the bench + fixes a documented error", the rule ROADMAP.md set for R1.
+
+## 11. Minimum dead-ball length inside Viterbi (ROADMAP R7, `analysis/dwell.py`)
+
+`decode.viterbi_dwell` makes every dead spell at least k frames long inside the search (a chain
+of k D sub-states), instead of absorbing short spells afterwards (`min_dead`). Fixed grid on
+cached `P_R1`, no search:
+
+| decoder | bench | ext | masked | public |
+|---|---|---|---|---|
+| `final_v2` (post-hoc `min_dead` 25) | 0.656 | 0.617 | 0.695 | 0.675 |
+| dwell 25 in Viterbi | 0.656 | 0.617 | 0.695 | 0.675 |
+| dwell 50 in Viterbi | 0.656 | 0.617 | 0.695 | 0.675 |
+| dwell 25, dead cost 9 | 0.654 | 0.616 | 0.693 | 0.675 |
+| dwell 25 + post-hoc 25 | 0.656 | 0.617 | 0.695 | 0.675 |
+
+**No change** (IDSSE +0.001 at most). The post-hoc rule already removes the short dead spells
+the in-search version prevents. Not adopted; the option stays in `decode.py` (`dwell`).
+
+## 12. What is less missing ball worth? (ROADMAP R2, `analysis/ball_value.py`)
+
+The decision gate for a dedicated video channel. The `final_v1` fold models (cached in
+`cache/models_final_v1.joblib`) score external matches whose ball gaps are restored whole (true
+ball + the usual 0.25 m noise), so the input stays "exact or missing", as in training. This is an
+**upper bound**: a perfect detector that the model needs no retraining for.
+
+| ball missing: ext / masked | bench | ext | masked | ext errors per 100: missed / drift / spurious |
+|---|---|---|---|---|
+| 46% / 45% (as now) | 0.656 | 0.617 | 0.695 | 22.1 / 19.4 / 3.6 |
+| 30% / 25% | 0.661 | 0.641 | 0.681 | 20.6 / 18.7 / 3.3 |
+| 17% / 10% | 0.667 | 0.664 | 0.671 | 19.2 / 18.1 / 3.1 |
+
+- **On external matches the ball is worth about +0.0016 spellF1 per point of missing ball
+  recovered**: +0.024 for 46% → 30%. That is roughly what the DP linker's coverage (38% of
+  missing frames) would give *if every position were right and in-distribution*.
+- **On our window it goes the other way**: hiding less ball scores lower (0.695 → 0.671), in line
+  with public (10% missing, 0.675) sitting below masked. The masked mean has a standard error of
+  about 0.014 (16 seeds, sd ±0.056), so this is suggestive, not proven; it is one more reason to
+  get the R3 labels.
+- **Decision: video channel (R6) closed.** The bench gain at the linker's coverage is +0.005
+  even for a perfect ball, under the 0.01 bar ROADMAP set. A real channel would see ~15% wrong
+  positions and need a full simulation and refit, for a fraction of that ceiling.
+
+## 13. Round 3 fast screen: R8 velocity pitch control, R5 CatBoost (`analysis/round3.py`)
+
+Screen tier (ROADMAP rule 7): 9 base matches, no mirror or noise copies, 300 trees. It only drops
+clear losers (more than 0.005 below the same-tier baseline).
+
+| screen | bench | ext | masked | public | verdict |
+|---|---|---|---|---|---|
+| `full_plus3` (baseline) | 0.569 | 0.589 | 0.549 | 0.606 | — |
+| R8 `full_plus4` (+ velocity-projected pitch control) | **0.583** | 0.595 | 0.571 | 0.576 | full fit |
+| R5 CatBoost (depth 6, lr 0.1, untuned) | 0.545 | 0.572 | 0.517 | 0.621 | dropped |
+| R5 HGB + CatBoost, averaged | 0.554 | 0.588 | 0.519 | 0.600 | dropped |
+
+CatBoost is more conservative (0.65 predicted per true possession against 0.70) and misses more
+short possessions; averaging it in drags the trees down. Untuned, so this is "not as a drop-in",
+not "never". Machine note: a browser tab held ~4 cores for the whole screen, which is why the
+two HGB screens took ~53 min each.
+
+## 14. Noisy student on our own match (ROADMAP R4, `analysis/noisy_student.py`)
+
+Each fold's `final_v1` model labels our match (decoded; kept where it is confident, max
+probability ≥ 0.8 and agreeing with the decoded label: 79–82% of graded frames), outside the
+public window ± 30 s and the masked tail. The student is the full `final_v1` recipe plus that
+match, fitted per fold.
+
+| | bench | ext | masked | public |
+|---|---|---|---|---|
+| `final_v2` | **0.656** | 0.617 | **0.695** | **0.675** |
+| + our match, pseudo-labelled | 0.640 | 0.618 | 0.663 | 0.634 |
+
+**Not adopted: −0.016.** External is unchanged, and our own window, the one place it was meant
+to help, gets worse (masked −0.032, public −0.041). The teacher's own mistakes on our match are
+learned back as truth; one pseudo-labelled match among 54 training copies is enough to pull the
+model towards them without adding information.
+
+## 15. R8 full fit: velocity-projected pitch control (`analysis/r8_full.py`)
+
+| | bench | ext | masked | public |
+|---|---|---|---|---|
+| `final_v2` | 0.656 | 0.617 | 0.695 | 0.675 |
+| `full_plus4` (full recipe) | 0.656 | 0.619 | 0.693 | 0.675 |
+
+**Not adopted: no change.** Its +0.014 on the fast screen (§13) disappears once the mirrored and
+extra-noise copies are in, which is why the screen may only drop candidates, never adopt them.
+
+**Round 3 summary.** Of R4, R5, R7 and R8, nothing beats `final_v2`; R1 (§10) was the only change
+adopted, and R2 (§12) closed the video channel. The decoder and the feature set are on a
+plateau. The remaining lever is validation (R3), not modelling.
