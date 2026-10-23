@@ -27,9 +27,15 @@ SPOT_R = 4.0         # m, ball this close to the centre spot is 'on the spot'
 MOVE_SPEED = 3.0     # m/s, the ball has been kicked
 SEARCH = 75          # frames after the formation ends in which to look for the kick
 MERGE = 1500         # frames: formations closer than this are one stoppage; keep the last kick
+BRIDGE = 50          # frames: a formation broken for less than this (a player drifting over the
+                     # line, a slot dropping out) is still one formation. Unbridged, our 2nd-half
+                     # kickoff was found 29 s early, at the first break
 
 
 PRE = 3000           # frames before a half's graded start in which its formation can form
+HALF_WAIT = (250, 4500)  # frames: 'half' mode imposes pre-kickoff dead ball only for a waiting
+                     # period of 10 s to 3 min (ours: 2,934). Later 'first' kickoffs on external
+                     # data are restarts after goals, up to 35 min in (bench: IDSSE -0.021)
 FIRST_WITHIN = 15000  # a half's first kickoff is looked for in its first 10 minutes
 
 
@@ -65,9 +71,18 @@ def _runs(mask):
     return list(zip(np.flatnonzero(e == 1), np.flatnonzero(e == -1)))
 
 
+def _bridge(mask, gap):
+    out = mask.copy()
+    runs = _runs(mask)
+    for (_, b), (a, _) in zip(runs[:-1], runs[1:]):
+        if a - b < gap:
+            out[b:a] = True
+    return out
+
+
 def detect(m, f):
     L, W = m.pitch
-    form = formation(m)
+    form = _bridge(formation(m), BRIDGE)
     on_spot = f["seen"] & (np.hypot(f["bx"] - L / 2, f["by"] - W / 2) < SPOT_R)
     kicked = on_spot & (f["bspeed"] > MOVE_SPEED)
     px, py = m.players[..., 0] * L, m.players[..., 1] * W
@@ -107,8 +122,12 @@ def detect(m, f):
     return merged
 
 
-def evidence(m, f, n_after=25, strength=8.0):
+def evidence(m, f, n_after=25, strength=8.0, mode="all"):
     """(n, 3) log-evidence (H, A, D) to add to the decoder's emissions.
+
+    mode 'all': dead ball before each half's first kickoff, and the kicking team after every
+    kickoff. 'half': only the dead ball before a half's first kickoff, and only for a waiting
+    period within HALF_WAIT (a half graded from the kick itself gets nothing).
 
     Pre-kickoff dead ball is imposed only when the kick itself was SEEN (ball leaving the centre
     spot): a formation-only detection can be late, and forcing D on everything before a late
@@ -126,10 +145,11 @@ def evidence(m, f, n_after=25, strength=8.0):
         # only a stretch that looks like waiting for the kickoff (players standing or walking)
         # becomes dead ball; a 'first' detection after minutes of open play is a restart after
         # a goal whose half-opening kickoff we did not see -- impose nothing before it
-        if t0 - s <= 25 or np.nanmedian(pace[s:t0]) < STILL_PACE:
+        wait = HALF_WAIT[0] < t0 - s <= HALF_WAIT[1]
+        if (wait or mode == "all") and (t0 - s <= 25 or np.nanmedian(pace[s:t0]) < STILL_PACE):
             E[s:t0, 2] += strength * 4   # before a half's first kickoff the ball is dead
             E[s:t0, :2] -= strength * 4
-    for t, team, _, _ in kicks:
+    for t, team, _, _ in (kicks if mode == "all" else []):
         k = 0 if team == "H" else 1
         E[t:t + n_after, k] += strength
     return E

@@ -16,13 +16,15 @@ The official challenge docs from Metrica's starter repository are kept as they w
 |---|---|---|---|
 | `baseline_smooth50` (official floor; 0.2433 on the full match) | 0.326 | 0.621 | — |
 | `rules_v2` (hand-written rules) | 0.461 | 0.852 | — |
-| **`final_v1` (current submission)** | **0.700** | **0.898** | **0.656** |
+| `final_v1` | 0.700 | 0.898 | 0.656 |
+| **`final_v2` (current submission)**: final_v1 + dead ball before the 2nd-half kickoff | **0.700** | **0.898** | **0.656** |
 
 \* `bench` is the yardstick we choose on, not the public window: the mean spellF1 over 9 external
 matches noised to look like ours, and over our public window with the ball hidden the way the
 full match loses it. The public 5 minutes are the best-tracked part of the match, with only 17
 possessions. **Never pick a version because it scores better there.**
 
+**What we do next, and its status: [ROADMAP.md](ROADMAP.md)** (the source of truth for open work).
 How we got here, with every number reproducible: [INVESTIGATION.md](INVESTIGATION.md).
 External reviews and our verdicts on each point: [RECOMMENDATIONS_REVIEW.md](RECOMMENDATIONS_REVIEW.md).
 
@@ -57,11 +59,13 @@ uv sync                      # behind a corporate TLS proxy: UV_SYSTEM_CERTS=1 u
 
 ```bash
 uv run python run.py                      # -> evaluation/results/final.csv, validated
-uv run python run.py --name final_v1      # the same, under another name
+uv run python run.py --name final_v2      # the same, under another name
 uv run python evaluation/run_evaluation.py --no-detail     # public-window scoreboard
 ```
 
-`run.py` is deterministic: it reproduces `final_v1` byte for byte (sha256 `34f6c958cdee1f05…`).
+`run.py` is deterministic: it reproduces `final_v2` byte for byte (sha256 `59e7b27fbcfbb325…`).
+`final_v2` differs from `final_v1` (`34f6c958…`) only on the 2nd half's 2,934 pre-kickoff frames
+(INVESTIGATION.md §10).
 The first run builds caches (about 30–60 min); later runs take about 11 min. Older methods are
 still available with `--method rules|fused_own|fused_ext`.
 
@@ -77,6 +81,7 @@ raw ATD ──► mtah/data.py      cache: players, ball, homography, camera cen
                               labels (mtah/external.py), noised to our tracker (mtah/noise.py),
                               plus mirrored and extra-noise copies
         ──► mtah/decode.py    3-state Viterbi: switch costs and a 1-s minimum dead ball
+                              (+ dead ball before the 2nd-half kickoff, mtah/kickoff.py)
         ──► evaluation/results/final.csv
 ```
 
@@ -103,8 +108,9 @@ see `analysis/decoder_sweep.py` and `analysis/round2.py`. Differences under abou
 
 The tracker loses the ball on 41% of graded frames. The fine-tuned detector works (79% of top
 picks within 2 m on held-out frames), but merging its track into the current model **lowers** the
-bench (INVESTIGATION.md §9), so `final_v1` does not use it. The next step, if anyone picks it up,
-is a separate "video ball" feature channel trained with simulated video-like noise.
+bench (INVESTIGATION.md §9), and so does a better DP linker (§9.1), so the submission does not use
+it. A separate "video ball" channel trained with simulated video-like noise is ROADMAP.md R6, built
+only if the value-of-ball test (R2) says it can pay.
 `mtah/video_ft.py` fine-tunes a small YOLO on our own video, using the ATD ball projected through
 the homography as automatic labels, then detects on the missing frames.
 

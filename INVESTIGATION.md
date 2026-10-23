@@ -74,10 +74,13 @@ From all of the above, the ideal system is:
    seen.
 4. **Better ball coverage from video**: run a ball detector on the tactical video to shrink the
    41% gap. This is the single biggest remaining lever, because every downstream step works far
-   better when the ball is seen. It is blocked on the video files.
+   better when the ball is seen. It is blocked on the video files. *(Since built and measured, §9:
+   as a drop-in ball it lowers the bench. ROADMAP.md R2 measures whether a dedicated channel can
+   pay.)*
 5. **A validation set big enough to choose between versions.** The 17 public possessions give
    ±0.04–0.07 between masking seeds. Hand-labelled validation windows from the video (allowed by
-   RULES.md) are the fix, and are also blocked on the video.
+   RULES.md) are the fix, and are also blocked on the video. *(Videos present since 2026-10-21;
+   now ROADMAP.md R3, a team task.)*
 
 Upper bound without video: on the public window the pipeline already recovers 16 of 17
 possessions. The remaining loss is boundary timing (~1–3 s late on some switches) and the
@@ -93,7 +96,7 @@ missing-ball regime.
 | W4 | Ball-free shape model on pseudo-labels | **done** | 88% team accuracy with no ball |
 | W5 | Viterbi fusion decoder | **done**, costs tuned on external labels | 12 / 6, mid-plateau |
 | W6 | Ball+shape model, bagging, capacity | **done: hit the noise floor** | ball columns add nothing once the leak was fixed (they double-count the ball). Capacity beyond 300 trees is flat. Bagging kept for variance |
-| W7 | Video ball detection: self-supervised YOLO on Colab | **done, not adopted** | §9: detector works (79% top-1 within 2 m), but the merged track lowers the bench (0.656 → 0.642/0.646) |
+| W7 | Video ball detection: self-supervised YOLO on Colab | **done, not adopted** | §9: detector works (79% top-1 within 2 m), but the merged track lowers the bench (0.656 → 0.642/0.646); a DP linker too (0.629–0.635, §9.1) |
 | W8 | External tracking data: IDSSE + Metrica sample (PFF needs a personal sign-up form, skipped) | **done** | §6: masked 0.35 → 0.47 |
 | W9 | Technical document and public repo hygiene | not started | — |
 
@@ -244,7 +247,7 @@ drift 19, merges 11, spurious 3.6, splits 2.1, predicted/true 0.71. The decoder 
 on purpose; a large part of "missed" is IDSSE's brief possessions, which our ground truth would
 not count.
 
-**Video (W7, unblocked).** Off-the-shelf COCO YOLO with tiling finds the ball within 2 m on 59% of
+**Video (W7, unblocked; superseded by §9).** Off-the-shelf COCO YOLO with tiling finds the ball within 2 m on 59% of
 frames where the tracker sees it. On genuine missing-ball frames its top candidate is plausible
 only 18% of the time. `mtah/video_ft.py` fine-tunes a detector on this camera using ATD-projected
 labels (the projection is unbiased: +0.5 / +0.8 px). It runs on Colab GPU via
@@ -349,3 +352,32 @@ dead-ball share from 29% to 14–17% (true 19.6%), trading recall (81% → 60–
 Detector-side upgrades (centred label boxes, overlapping 4×2 tiles with cross-tile NMS, 3-frame
 input, hard-example mining) are deferred until 1 is in place: a better detector cannot help a
 model that is misled by its output.
+
+## 10. Dead ball before the 2nd-half kickoff (ROADMAP R1, `analysis/kickoff_modes.py`)
+
+FAQ.md: the 2nd half is graded from frame 110,808 but kicks off at 113,742, so those 2,934 frames
+are all `D`. `final_v1` had **19 label spells** there (32% H/A): about 10 spurious possessions,
+the costliest error type (§1), invisible to the bench because no external match and no public
+frame comes before a half's kickoff.
+
+Two fixes, both algorithmic:
+1. **The kickoff detector found our 2nd-half kickoff 29 s early**, with the kick unseen: the
+   pre-kick formation breaks for 1–2 s several times (a player over the line, slots dropping out),
+   and the detector stopped at the first break. Bridging breaks under 2 s (`kickoff.BRIDGE`)
+   finds it **5 frames before 113,742, with the kick seen**.
+2. **A `kickoff='half'` decoder mode**: dead-ball evidence before a half's first kickoff only, and
+   only for a waiting period of 10 s – 3 min. Without that bound, external "first" kickoffs that
+   are really restarts after goals (up to 35 min into a half) got a dead ball imposed before
+   them: IDSSE 0.608 → 0.587. No team evidence after kickoffs (the part that cost −0.008).
+
+| decoder (cached `P_R1`) | bench | ext | masked | public |
+|---|---|---|---|---|
+| `kickoff=False` (final_v1) | 0.656 | 0.617 | 0.695 | 0.675 |
+| `kickoff='half'`, unbounded wait | 0.648 | 0.601 | 0.695 | 0.675 |
+| **`kickoff='half'`, wait 10 s – 3 min (final_v2)** | **0.656** | 0.617 | 0.695 | 0.675 |
+| `kickoff='all'` (with bridging) | 0.648 | 0.601 | 0.695 | 0.675 |
+
+**`final_v2`** = `final_v1` + bounded `'half'` mode. It changes exactly 942 frames, all inside the
+pre-kickoff stretch, which goes from 19 spells to 2 (the last 5 frames before the detected kick
+are not forced). Full-match possessions 292 → 282; public spellF1 unchanged at 0.700. Adopted
+on "no harm on the bench + fixes a documented error", the rule ROADMAP.md set for R1.

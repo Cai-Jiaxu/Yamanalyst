@@ -25,8 +25,8 @@ PARAMS = {
     "min_dead": 0,        # frames; dead spells shorter than this are absorbed (min_duration())
     "min_poss": 0,        # frames; possessions shorter than this, flanked by one team, absorbed
     "em_prior": False,    # adapt class priors to this match by EM (label_shift())
-    "kickoff": False,     # add kickoff evidence (mtah/kickoff.py): D before each half's
-                          # first kickoff, the kicking team right after every kickoff
+    "kickoff": False,     # add kickoff evidence (mtah/kickoff.py): True / 'all' or 'half'
+                          # (see kickoff.evidence)
     "w_bound": 0.0,       # weight of the boundary head's log-odds on the switch cost
     "snap_r": 0,          # frames; >0 moves each boundary to the nearest physical event (snap())
 }
@@ -161,7 +161,8 @@ def decode(m, rule_labels, P_shape, seen, p=PARAMS, f=None, B=None):
     logE = emissions(P_shape, rule_labels, seen, p)
     if p.get("kickoff") and f is not None:
         from mtah import kickoff
-        logE = logE + kickoff.evidence(m, f)
+        mode = p["kickoff"] if isinstance(p["kickoff"], str) else "all"
+        logE = logE + kickoff.evidence(m, f, mode=mode)
     bonus = boundary_bonus(B, p["w_bound"]) if B is not None and p.get("w_bound", 0) else None
     for _, a, b in m.halves:
         out[a:b + 1] = STATES[viterbi(logE[a:b + 1], T,

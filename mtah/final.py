@@ -24,9 +24,11 @@ from mtah.shape_model import EXT_NOISE_VERSION, STEP
 MODEL = {"max_iter": 600}
 # analysis/round2.py on the leak-free bench: base 0.649 -> min_dead 0.653 -> set-piece 0.656.
 # Not adopted (measured): boundary head (+-0.001), EM prior (-0.017), IDSSE relabel (-0.002),
-# kickoff evidence (-0.008 at best, see mtah/kickoff.py).
+# full kickoff evidence (-0.008). Adopted in final_v2: kickoff='half', dead ball before the 2nd
+# half's kickoff only (bench unchanged, 0.656; fixes 19 spurious spells in our 2,934 pre-kickoff
+# frames, which the bench cannot see -- analysis/kickoff_modes.py).
 DECODER = {"w_shape": 0.75, "cost_dead": 12.0, "cost_team": 12.0, "min_dead": 25,
-           "w_bound": 0.0}
+           "w_bound": 0.0, "kickoff": "half"}
 FEATFN = "full_plus3"
 SEED = 0
 
