@@ -281,3 +281,71 @@ detections are neither: ~1 in 5 top picks is wrong and the rest are good to ~2 m
 through the same channel as the ATD ball misleads the features. A fix would be a separate
 "video ball" channel plus video-like noisy balls simulated in the external training data. That
 is real work with an uncertain payoff, so `final_v1` stays.
+
+### 9.1 Better linking does not rescue it (`analysis/video_audit.py`, `video_link.py`, `video_link_bench.py`)
+
+Two external reviews blamed the greedy `merge_track` (one false positive blocks the true ball for
+15 frames; thresholds set for COCO-scale confidences). We checked both claims before rebuilding
+anything.
+
+**What the detections look like** (public window, frames where the ATD sees the ball):
+
+| | |
+|---|---|
+| some candidate within 2 m / top-1 within 2 m (given a candidate) | 70.8% / 81.6% |
+| true candidate is ranked #1 when present | 97.3% |
+| median confidence of the true candidate; share below 0.25 | 0.13; 79% |
+| wrong top-1 picks outside the pitch | 3.4% |
+| true candidate ≥ 4 m from every player | 22% |
+| frames with two candidates < 0.8 m apart (tile / nested-box duplicates) | 79% |
+
+So the 0.25 threshold throws away most correct detections (the 1.2 m region labels compress
+YOLO's IoU-aware confidence), and re-ranking the top 5 can gain at most ~2 points.
+
+**A DP tracklet linker** (`analysis/video_link.py`) over all deduplicated candidates replaces
+the greedy filter. Scored on the public window with the ATD ball hidden (8 seeds; optimistic,
+because those frames were in the detector's training pool and the ball is visible on them):
+
+| track | hidden frames filled | within 2 m when filled | correct coverage |
+|---|---|---|---|
+| greedy, conf ≥ 0.25 (current) | 12.5% | 89.8% | 11.3% |
+| greedy, conf ≥ 0.05 | 66.3% | 87.1% | 57.7% |
+| DP linker, c0 = 0.08 | 75.2% | 84.5% | 63.6% |
+| DP linker, c0 = 0.05 | 88.9% | 81.2% | 72.1% |
+
+On genuine missing graded frames the linker fills 39% against 10% for the current filter.
+
+**Effect on the submission model** (`analysis/video_link_bench.py`, same method as above):
+
+| | missing filled | bench | masked | public spellF1 |
+|---|---|---|---|---|
+| `final_v1`, no video | — | **0.656** | **0.695** | **0.675** |
+| greedy, conf ≥ 0.25 | 9.7% | 0.642 | 0.666 | 0.675 |
+| DP linker, c0 = 0.12 | 25.3% | 0.635 | 0.653 | 0.662 |
+| DP linker, c0 = 0.08 | 38.1% | 0.629 | 0.641 | 0.662 |
+| greedy, conf ≥ 0.05 | 39.2% | 0.622 | 0.627 | 0.642 |
+
+**The more video ball, the worse the score, public window included.** At equal coverage the
+linker beats greedy (0.629 against 0.622), so its precision is real, but the sign does not change.
+The cause is the train/test mismatch above: the model learned "exact or missing" and gets ~15%
+wrong positions passed off as exact. Sparse video points inside a gap also reset `since` /
+`until` / `seen`, which the external training data (solid NaN blocks from `mtah/noise.py`) never
+shows.
+
+Side check (`analysis/video_jitter.py`): low-threshold tracks fake > 3 m/s on 17–24% of
+stationary-ball frames (4% after a 15-frame Savitzky–Golay smoother). Video lowers the rules'
+dead-ball share from 29% to 14–17% (true 19.6%), trading recall (81% → 60–69%) for precision
+(57% → 81–85%). That is a net gain for the rules, not the cause of the model's loss.
+
+**What would have to change before video can help**, in order:
+1. A separate video-ball channel (own columns and own `seen`), with video-like tracks simulated
+   in the external training data: clumpy tracklets, ~85% within 2 m, **and** the ~15% false
+   positives. Needs a full refit.
+2. Retrain the detector with the public window (frames 11185–19435) out of its training pool;
+   until then every masked score with video in it is optimistic.
+3. A small hand-labelled sample of genuine missing-ball frames (by a person, never an LLM), the
+   only way to measure precision where it matters.
+
+Detector-side upgrades (centred label boxes, overlapping 4×2 tiles with cross-tile NMS, 3-frame
+input, hard-example mining) are deferred until 1 is in place: a better detector cannot help a
+model that is misled by its output.

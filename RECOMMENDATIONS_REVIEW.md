@@ -92,3 +92,38 @@ Every claim was checked against the code and the data before acting.
 | 7a | Pitch control ignores player velocity | Yes | **Skip.** Per-slot velocities spike on identity switches, so the gain is uncertain |
 | 7b | No set-piece geometry | Yes | **Add as features**: own-half symmetry index (kickoffs), players in each box, ball/camera distance to corner and touchline |
 | 3 (gain claims) | +0.05–0.10 and so on | — | Unmeasured. Each item is kept or dropped on the bench |
+
+# Review of the third feedback (video detector: label box, tiles, linking)
+
+It promised ~90% on both video metrics. Checked against `cache/ball_det_ft.npz` and then on the
+bench (INVESTIGATION.md §9.1). Its numbers had no measurement behind them.
+
+| # | claim | verified? | verdict |
+|---|---|---|---|
+| 1 | `ball_box` puts the ATD point on the label box's bottom edge, so the ball often falls outside the 1.2 m region | **Yes, as a design flaw, not a train/detect mismatch** (detection also maps the box bottom back). With unbiased ~9 px ATD error, about half the labels have the ball centre below the box, where YOLO's assigner picks no positives | **Defer.** Centre the box and map the centre back (keep the COCO path on the box bottom). Better still: snap labels to round-1 detections and retrain with tight boxes. Only worth it once the model can use video at all |
+| 2A | 3-frame temporal input separates the ball from socks and markings | Plausible (TrackNet-style), unmeasured | **Defer.** The camera pans, so neighbouring frames must be warped through the per-frame homographies first. A dataset and detect rewrite |
+| 2B | `TILES` has zero horizontal overlap; overlapping tiles are not deduplicated | **Yes, both.** 79% of frames have two candidates < 0.8 m apart | **Defer** to the next detector run: 4×2 grid plus cross-tile NMS. Small effect, since the ball is near a seam on only a few % of frames |
+| 2C | Mine hard frames: near players and near ATD dropouts | Plausible | **Defer.** Near-player frames yes. Near-dropout ATD labels are the least reliable ones |
+| 2D | Re-rank the top 5 with pitch and player priors (spare balls off the pitch) | **No.** The true ball is ranked #1 on 97% of frames where it is present; only 3.4% of wrong top picks are off the pitch | **No.** At most ~2 points of top-1 |
+| 3 | The 26% "plausible" probe is artificially low (conjunction with the previous sample, top-1 only, < 4 m from a player) | **Yes.** 22% of correct detections are ≥ 4 m from every player | Agreed, but it is only a proxy; it does not measure accuracy either way |
+| 3 (fix) | Replace greedy `merge_track` with a gap-anchored linker over all 5 candidates: "0 GPU hours", "80–90% coverage" | **Built and measured.** Correct coverage on masked frames 11% → 64–72%; on real missing frames 10% → 39% filled | **No (measured).** Every variant lowers the bench: 0.656 → 0.629–0.635. More coverage scores worse |
+
+# Review of the fourth feedback (video integration)
+
+Written from the output of `analysis/video_score.py`. Its diagnosis is mostly right; its fix is
+not.
+
+| # | claim | verified? | verdict |
+|---|---|---|---|
+| Paradox | Video helps the rules but hurts `final_v1` (masked 0.695 → 0.666 / 0.676) | **Yes** for `final_v1`; the rules figure was not re-run | — |
+| A | Region labels squash YOLO's IoU-aware confidence, so conf ≥ 0.25 drops most real detections | **Yes.** True-ball median conf 0.13, 79% below 0.25; coverage figures match ours | Agreed. "The detector sees the ball on nearly every live missing frame" does **not** follow: a candidate is not the ball |
+| B | Box jitter fakes > 3 m/s and destroys dead-ball detection | **Half.** Its arithmetic uses the 0.65 m error vs the ATD as frame-to-frame jitter and ±2-frame differences (the code uses ±1 then a 5-frame mean); real median fake speed is 1.2–1.5 m/s. Fake > 3 m/s does happen on 17–24% of stationary frames | **Smooth if video is ever used** (Savitzky–Golay 15 → 4%). "Destroys D" is backwards: dead-ball precision rises 57% → 81–85%, F1 ≈ 0.67 → 0.74 |
+| C | Sparse video points create a train/test shift: `seen`, `since`, `until` never look like this in the noised external data | **Yes**, from the code (`feats.py`, `rules.dead_mask`, `noise.py`) | **The cause.** Confirmed by the bench: more video, worse score, public included |
+| Fix 1 | Linker at conf ≥ 0.07 plus smoothing makes video a net gain, no Colab needed | **Measured: no.** Best linker 0.635 against 0.656 | **No** |
+| Fix 2 | Zero-retrain decoupling: `seen` / `since` / `until` from the ATD only, video fills `bx`, `by`, `dh`, `da` | `feats.py` blanks those columns wherever `seen` is false; changing that feeds `seen = 0` with a finite ball, a combination absent from training | **No.** It swaps one shift for another |
+| Fix 3 | Simulate video recovery in `mtah/noise.py` so training matches test | Principled. Its version (35% of gap frames, 0.65 m Gaussian) leaves out the ~15% false positives that cause spurious switches | **Do, if video is pursued**: own columns and own `seen`, calibrated on measured coverage, clumpiness and error rate. Needs a full refit; payoff uncertain |
+| 2 | Velocity-projected pitch control and `dv` touch features | `dv` exists; a simplified pitch control exists | **Test**, small. Only the velocity projection is new (see 7a above on velocity spikes) |
+| 3 | Synthetic camera proxy on external data; late fusion of Smart Tagging | Tagging already measured (±3–12 s, 77% team agreement); the camera centre is a 12 m-median ball proxy | **No** for tagging (a fusion weight could only be tuned on 17 possessions). Camera proxy: **Defer** |
+| 4 | Minimum dead-ball dwell inside Viterbi; `is_metrica` indicator | Post-hoc `min_dead = 25` already gave +0.004 | Dwell in Viterbi: **Test**, small. `is_metrica`: **No**, our match has no right value for it (IDSSE relabel measured −0.002) |
+| 5 | TCN / BiGRU refiner | — | **Defer**, as before |
+| Omitted | — | The detector's training pool includes the public window (`cand < 170000`) | **Fix before any further video scoring**: exclude frames 11185–19435 from training |
