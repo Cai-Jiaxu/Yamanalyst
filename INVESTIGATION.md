@@ -470,3 +470,185 @@ extra-noise copies are in, which is why the screen may only drop candidates, nev
 **Round 3 summary.** Of R4, R5, R7 and R8, nothing beats `final_v2`; R1 (§10) was the only change
 adopted, and R2 (§12) closed the video channel. The decoder and the feature set are on a
 plateau. The remaining lever is validation (R3), not modelling.
+
+## 16. Why "less hidden ball scores lower" on the public window, and R3 2nd-half validation (`analysis/r3_eval.py`)
+
+In §12 (`analysis/ball_value.py`), hiding less ball raised external `spellF1` (`0.617 → 0.641 → 0.664`)
+but lowered our public-window score (`0.695` at 45% hidden → `0.681` at 25% → `0.671` at 10% → `0.675`
+at 0% extra hidden). Decomposing `spellF1 = 2 · TP / (17 + N_pred)` across masking levels explains why:
+
+| extra ball hidden (public window) | spellF1 | mean TP / 17 (recall) | N_pred (precision) | spurious spells | teamAcc (live) | deadF1 | macroF1 |
+|---|---|---|---|---|---|---|---|
+| 0% (`public`, 10% missing) | 0.675 | 10.80 (0.635) | 15.00 (0.720) | 2.00 | 0.958 | 0.969 | 0.901 |
+| 10% (`pace_weights`) | 0.671 | 10.84 (0.638) | 15.31 (0.708) | 2.25 | 0.958 | 0.969 | 0.903 |
+| 25% (`pace_weights`) | 0.681 | 10.76 (0.633) | 14.62 (0.736) | 1.75 | 0.958 | 0.968 | 0.903 |
+| 45% (`masked`, `pace_weights`) | **0.695** | 10.66 (0.627) | 13.69 (0.779) | 1.00 | 0.958 | 0.971 | 0.911 |
+| 45% (uniform `weights=None`) | 0.685 | 10.38 (0.611) | 13.31 (0.780) | 0.81 | 0.957 | 0.968 | 0.906 |
+| 100% (ball-free shape only) | 0.696 | 9.40 (0.553) | 10.00 (0.940) | 0.00 | 0.963 | 0.961 | 0.901 |
+
+1. **Visible ball helps recall (`TP`), not hurts it.** True matched possessions rise from `9.40` (no
+   ball) to `10.66` (45% hidden) to `10.80–10.84` (0–10% hidden). On live-play team calls
+   (`teamAcc = 0.958`) and dead-ball F1 (`deadF1 = 0.968–0.971`), 0%–45% hidden are identical.
+2. **The `0.675` vs `0.695` inversion comes from 2 spurious spells (`1.84 s` `H` and `2.28 s` `A`,
+   103 frames total) inside ground-truth stoppages (`D = 100%`).** During those 103 frames, both
+   teams are walking (`pace = 1.09` and `1.27 m/s`) and no player is within `5 m` of the ball
+   (`min(dh, da) = 5.88 m` and `5.12 m`), but the ATD ball is tracked (`seen = 100%`) moving fast
+   (`bspeed = 7.82` and `12.42 m/s`, e.g. ball returned to a restart spot). In external training,
+   `D` frames have the ball seen only `40.0%` of the time (`50.6%` IDSSE, `3.0%` Metrica), whereas
+   `public` has `D` ball seen `66.4%` of the time. The fast visible ball tricks the trees into two
+   short live spells inside `D`, inflating `N_pred` from `13.69` to `15.00` (`-0.020` `spellF1` on a
+   17-spell denominator).
+3. **`pace_weights` (`3×` gap-start weight when `pace < 1.3 m/s`) selectively masks those slow
+   stoppage frames.** Under `masked`, `D` ball visibility drops from `66.4%` to `26.1%`; when the
+   ball is hidden on those 103 frames, the ball-free shape model (`100%` hidden) agrees with `gt = D`
+   `100.0%` of the time, cutting `spurious` from `2.00` to `1.00` (`0.00` at 100% hidden). With
+   uniform 45% masking (`weights=None`), half of the `masked - public` gap disappears (`0.685`,
+   `se = 0.010`).
+
+### R3 2nd-half validation windows (`work/labels/val_h2_*.csv`, `analysis/r3_eval.py`)
+
+Four non-overlapping 5-minute (`7,500`-frame) windows in the 2nd half (`30,000` frames = 20 minutes
+total, `57` graded live spells, `62.8%` mean ball visibility) were labelled in `work/labels/`:
+
+| `--window` | file | frames (`tactical`) | ball seen | GT live spells | `final_v2` spells | `spellF1` | `lowIoU` (`0.1..0.3`) | `teamAcc` | `deadF1` | `collarMF1` ($\pm 1\text{ s}$) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `1` | `val_h2_122500.csv` | `122500..130000` | 72.5% | 13 | 18 | 0.594 | 0.753 | 0.933 | 0.935 | 0.819 |
+| `2` | `val_h2_137500.csv` | `137500..145000` | 60.9% | 10 | 14 | 0.533 | 0.639 | 0.939 | 0.928 | 0.885 |
+| `3` | `val_h2_167500.csv` | `167500..175000` | 49.3% | 13 | 11 | **0.717** | **0.833** | 0.909 | **0.959** | **0.929** |
+| `4` | `val_h2_182500.csv` | `182500..190000` | 68.7% | 21 | 19 | 0.450 | 0.717 | 0.779 | 0.941 | 0.827 |
+
+Across the combined 20-minute `val_h2` benchmark (`57` graded live spells):
+
+| method (on combined `val_h2`) | `spellF1` | `lowIoU` | `macroF1` | `collarMF1` | `teamAcc` | `deadF1` | `TP / 57` | `N_pred` | `spurious` |
+|---|---|---|---|---|---|---|---|---|---|
+| `rules_v2` | 0.655 | 0.801 | 0.865 | 0.883 | 0.917 | 0.928 | 39.0 / 57 | 62 | 10 |
+| `R0 final_v1` (`kickoff=None`) | 0.558 | 0.734 | 0.860 | 0.894 | 0.890 | 0.940 | 33.2 / 57 | 62 | 13 |
+| `R1 final_v2` (`kickoff='half'`) | 0.558 | 0.734 | 0.860 | 0.894 | 0.890 | 0.940 | 33.2 / 57 | 62 | 13 |
+| `R2` (50% unmasked copies) | 0.526 | 0.713 | 0.855 | 0.891 | 0.887 | 0.938 | 30.0 / 57 | 57 | 12 |
+| `R4` (pseudo-label student) | 0.571 | 0.746 | 0.862 | 0.897 | 0.889 | 0.942 | 33.4 / 57 | 60 | 12 |
+| `R6` DP video ball (`c0=0.08`) | 0.536 | 0.722 | 0.844 | 0.879 | 0.893 | 0.925 | 32.4 / 57 | 64 | 14 |
+| `R6` DP video ball (no spots) | 0.536 | 0.722 | 0.844 | 0.879 | 0.893 | 0.925 | 32.4 / 57 | 64 | 14 |
+| `R7` in-Viterbi `dwell=25` | 0.558 | 0.734 | 0.860 | 0.894 | 0.890 | 0.940 | 33.2 / 57 | 62 | 13 |
+| `R8` velocity pitch control | 0.571 | 0.746 | 0.861 | 0.896 | 0.889 | 0.941 | 33.4 / 57 | 60 | 12 |
+| `submission (final_v2.csv)` | 0.577 | 0.722 | 0.859 | 0.895 | 0.891 | 0.938 | 34.6 / 57 | 63 | 14 |
+
+### Settling the "less hidden ball scores lower" question on `val_h2`
+
+Running the `0% / 25% / 45% / 100%` additional ball-hiding sweep on `val_h2` (where natural ball
+visibility is already `62.8%`, vs `89.7%` on the public window) settles the question:
+
+| `val_h2` masking level | ball seen | `spellF1` | `lowIoU` | `TP / 57` | `N_pred` | `spurious` | `teamAcc` | `deadF1` | `collarMF1` |
+|---|---|---|---|---|---|---|---|---|---|
+| extra hide `0%` (natural `val_h2`) | 62.8% | **0.558** | 0.734 | **33.20** | 62.00 | 13.00 | **0.890** | 0.940 | 0.894 |
+| extra hide `25%` (`pace_weights`) | 47.0% | 0.555 | **0.748** | 31.50 | 56.50 | 9.12 | 0.888 | **0.941** | 0.897 |
+| extra hide `45%` (`pace_weights`) | 35.4% | 0.531 | 0.732 | 29.12 | 52.62 | 7.75 | 0.882 | **0.941** | **0.898** |
+| extra hide `100%` (shape only) | 0.0% | 0.440 | 0.653 | 22.20 | 44.00 | 5.00 | 0.856 | 0.939 | 0.887 |
+
+- **More visible ball strictly improves `spellF1` (`0.440 → 0.531 → 0.555 → 0.558`), true-possession
+  recall (`TP: 22.20 → 29.12 → 31.50 → 33.20`), and live `teamAcc` (`0.856 → 0.882 → 0.888 → 0.890`)
+  at natural 2nd-half missingness (`62.8%` seen).**
+- At the same time, **the dead-ball spurious-spell mechanism holds in the 2nd half too:** in unmasked
+  `val_h2` (`0%` extra hide), `final_v2` emits spurious live spells inside long stoppages whenever
+  the ATD tracks a ball rolling along the touchline (windows 1 and 3) or being placed in the 6-yard
+  box before a goal kick (window 2). Masking `25%` of slow frames via `pace_weights` eliminates `3.88`
+  of those spurious spells (`13.00 → 9.12`) and raises relaxed-IoU `spellF1` (`0.734 → 0.748`) and
+  `collarMF1` (`0.894 → 0.897`), while masking `45%` (`ball_seen = 35.4%`) over-starves live
+  possessions (`TP` drops by `4.08` spells, lowering exact `spellF1` to `0.531`).
+
+### 300-frame genuine missing-ball probe (`work/labels/ball_probe_300.csv`)
+
+Visual inspection of the 300 stratified genuine missing-ball frames (`--probe`) shows:
+- **`D` (Dead ball / stoppage):** `201 / 300` (**`67.0%`**) — throw-in waits, foul/free-kick waits,
+  goal-kick/corner waits, cooling breaks, substitutions, and post-whistle frames.
+- **`O` (Occluded / aerial / off-screen live play):** `52 / 300` (**`17.3%`**) — ball in player
+  scrums or above the top crop of the tactical camera during high clearances/goal kicks.
+- **`V` (Visible live ball on pitch):** `47 / 300` (**`15.7%`**, or `47.5%` of the 99 live missing-ball
+  frames).
+- **Why the un-retrained DP video ball (`R6`) hurts `final_v2` on `val_h2` (`0.558 → 0.536`,
+  `deadF1 0.940 → 0.925`):** On the 300-frame probe, the DP linker (`c0 = 0.08`) links `115 / 300`
+  (`38.3%`) missing-ball frames — recovering `74.5%` (`35 / 47`) of `V` frames and `0.0%` (`0 / 52`)
+  of `O` frames, **but linking `39.8%` (`80 / 201`) of `D` frames** (`69.6%` of all linked frames are
+  stoppages, including `21.7%` locked onto painted white penalty/center spots). Filling `seen = 1`
+  during stoppages resets `since`/`until` and causes the un-retrained trees to over-predict live play
+  inside stoppages.
+
+## 17. Rules back in the decoder? The yardsticks disagree (`analysis/fusion_val.py`)
+
+R3 showed `rules_v2` beating `final_v2` on the hand-labelled 2nd half (0.655 vs 0.558). Decoder-only
+on cached `P_R1`, rule evidence added where the ball is seen nearby (`use_rules=True`):
+
+| decoder | bench | ext | masked | public | **val_h2** | win 1 | win 2 | win 3 | win 4 |
+|---|---|---|---|---|---|---|---|---|---|
+| `final_v2` (rules as features only) | **0.656** | **0.617** | **0.695** | **0.675** | 0.558 | 0.594 | 0.533 | 0.717 | 0.450 |
+| rules, w 0.25 | 0.632 | 0.589 | 0.675 | 0.645 | 0.630 | 0.648 | 0.589 | 0.800 | 0.530 |
+| rules, w 0.5 | 0.567 | 0.545 | 0.589 | 0.480 | **0.680** | 0.624 | 0.491 | 0.864 | 0.702 |
+| rules, w 1 | 0.531 | 0.492 | 0.570 | 0.447 | 0.652 | 0.708 | 0.448 | 0.829 | 0.623 |
+| team-only rule evidence, w 0.25 | 0.632 | 0.590 | 0.674 | 0.645 | 0.630 | 0.627 | 0.509 | 0.800 | 0.530 |
+| rules w 0.5, only where model max P < 0.8 | 0.610 | 0.582 | 0.638 | 0.613 | 0.592 | 0.640 | 0.360 | 0.696 | 0.652 |
+
+- **A smooth trade-off, no free lunch.** At w 0.25 every 2nd-half window improves (val +0.072) while
+  ext (−0.028), masked (−0.020) and public (−0.030) all fall; larger weights trade more.
+- **Gating on model confidence does not help**: the val gain comes from frames where the model is
+  confident *and* wrong. The model's live team accuracy is 0.958 on the public window but 0.890 on
+  val_h2 (0.779 in window 4): it drifts later in the match, while the rules, which read the ball
+  directly, do not.
+- **Which yardstick represents the full match is the open question.** Ext and public use real
+  ground truth but are other leagues / the match's best-tracked first 5 minutes; val_h2 is our
+  match's 2nd half (57 possessions) but eye-labelled, a convention that may lean towards touches.
+
+## 18. `final_v3`, and why the model drifts in the 2nd half (`analysis/drift.py`)
+
+**`final_v3`** = `final_v2` with the rule labels voting in the decoder (`use_rules`, `w_rule` 0.25),
+chosen on `val_h2` (§17). Delivered files: public spellF1 0.700 → 0.653 (macroF1 0.898 → 0.904),
+`val_h2` 0.577 → **0.627** (macroF1 0.859 → 0.873), full-match possessions 282 → 286.
+
+**Where the model's team calls go wrong** (live frames, `final_v2` decoder vs labels):
+
+| window | model team acc | rules team acc | live frames with the ball seen | model error, ball seen | rules error, ball seen | ball seen on D frames |
+|---|---|---|---|---|---|---|
+| public | **0.958** | 0.889 | 94% | 4.5% | 11.8% | 66% |
+| 2nd half, win 1 | 0.933 | **0.957** | 100% | 6.7% | 4.3% | 27% |
+| win 2 | **0.939** | 0.877 | 91% | 6.7% | 13.5% | 18% |
+| win 3 | 0.909 | **0.957** | 91% | 9.6% | 4.5% | 11% |
+| win 4 | 0.779 | **0.879** | 98% | 21.2% | 12.2% | 29% |
+
+- **Not tracking quality**: 10.5–11.0 players tracked per team in every window.
+- **The model errs with the ball visible** (91–100% of live frames have it): it under-uses ball
+  evidence that is good on our match. The errors are confident (top probability 0.77–0.81), which
+  is why gating rules on model uncertainty failed (§17).
+- **Neither source dominates**: the model wins in the public window and window 2, the rules in
+  windows 1, 3 and 4. A fixed blend is a compromise; a per-frame choice could do better.
+- **§16's "dead-ball frames have the ball seen 66%" is a public-window quirk**: in the 2nd half it is
+  11–29%, close to training's 40%. Recalibrating the noise model's dead-ball bias to the public
+  window would have been wrong.
+
+## 19. R11 per-frame stacker, and the stoppage-blip gate (`analysis/r11_stack.py`)
+
+**Stacker**: multinomial logistic regression on 10 per-frame inputs (log P ×3, rule vote × ball
+near ×3, ball near, on-ball distance margin, ball seen, ball speed), fitted on the labelled frames
+of our match with leave-one-window-out CV over public + the 4 val windows; its output replaces P in
+the `final_v2` decoder. Ext is scored with the stacker fitted on all 5 windows, masked with one
+fitted on the 4 val windows only (no stacker sees the labels it is scored on).
+
+**Stop gate**: a live spell ≤ 100 frames with dead ball on both sides while the players walk
+(mean team pace < 1.3 m/s, 1 s smoothing) becomes dead ball (§16: the ATD tracking a returned
+ball during a stoppage). Pre-specified from §16, one setting, not tuned here.
+
+| config | bench | ext | masked | public | win 1 | win 2 | win 3 | win 4 | val avg |
+|---|---|---|---|---|---|---|---|---|---|
+| `final_v2` decoder | 0.656 | **0.617** | 0.695 | 0.675 | 0.594 | 0.533 | 0.717 | 0.450 | 0.573 |
+| `final_v3` (submitted) | 0.632 | 0.589 | 0.675 | 0.645 | 0.648 | 0.589 | 0.800 | 0.530 | 0.642 |
+| `final_v3` + stop gate | 0.636 | 0.589 | 0.683 | 0.667 | 0.648 | 0.589 | 0.800 | 0.530 | 0.642 |
+| `final_v2` + stop gate | **0.661** | 0.616 | **0.706** | **0.697** | 0.594 | 0.557 | 0.717 | 0.450 | 0.579 |
+| R11 stacker (w_shape 0.75; 1.0 is identical on val) | 0.505 | 0.469 | 0.541 | 0.565 | 0.662 | 0.452 | 0.848 | 0.722 | 0.671 |
+| R11 stacker + stop gate | 0.506 | 0.468 | 0.543 | 0.565 | 0.662 | 0.473 | 0.883 | 0.722 | **0.685** |
+
+- **R11 fails its decision rule**: held-out val average +0.029 over `final_v3`, but public −0.080
+  and window 2 −0.137. It wins where the rules already won (windows 3–4) and loses where the model
+  won (public, window 2): with 5 windows it learns a fixed lean towards the rules, not a per-frame
+  choice. Its collapse on ext/masked is expected (fitted on our match's conventions) and shows it
+  would not generalise. **Not adopted.**
+- **The stop gate never hurts**: on `final_v3` public +0.022, masked +0.008, ext and every val
+  window unchanged; on `final_v2` bench +0.005, public +0.022, masked +0.011, win 2 +0.024. On
+  `final_v3` the bench gain (+0.004) is just under rule 1's 0.005, so it qualifies on the R1-style
+  "does no harm + fixes a known error" basis (§16).

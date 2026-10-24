@@ -19,6 +19,7 @@ PARAMS = {
     "w_shape": 1.0,
     "w_rule": 1.0,
     "q_rule": 0.97,       # how much to trust the rule label where the ball is seen
+    "rule_gate": 1.01,    # rule evidence only where the model's top probability is below this
     "seen_r": 12,         # frames: ball seen within this counts as 'seen nearby'
     "cost_team": 12.0,    # nats per H<->A switch (mid-plateau, analysis/decoder_tune.py)
     "cost_dead": 6.0,     # nats per alive<->dead switch
@@ -111,12 +112,13 @@ def emissions(P_shape, rule_labels, seen, p):
     if p.get("em_prior"):
         P_shape = label_shift(P_shape, p["train_prior"])
     logE = p["w_shape"] * np.log(np.clip(P_shape, eps, 1.0))
+    unsure = P_shape.max(axis=1) < p.get("rule_gate", 1.01)
     near = np.convolve(seen.astype(float), np.ones(2 * p["seen_r"] + 1), "same") > 0
     q = p["q_rule"]
     rl = np.full((len(rule_labels), 3), np.log((1 - q) / 2))
     for k, s in enumerate(STATES):
         rl[rule_labels == s, k] = np.log(q)
-    use = near & np.isin(rule_labels, STATES)
+    use = near & np.isin(rule_labels, STATES) & unsure
     logE[use] += p["w_rule"] * rl[use]
     return logE
 

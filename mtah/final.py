@@ -27,8 +27,12 @@ MODEL = {"max_iter": 600}
 # full kickoff evidence (-0.008). Adopted in final_v2: kickoff='half', dead ball before the 2nd
 # half's kickoff only (bench unchanged, 0.656; fixes 19 spurious spells in our 2,934 pre-kickoff
 # frames, which the bench cannot see -- analysis/kickoff_modes.py).
+# Adopted in final_v3: the rule labels also vote in the decoder (use_rules, w_rule 0.25). On the
+# hand-labelled 2nd half every window improves (val_h2 0.558 -> 0.630) at a cost of ~0.03 on the
+# real-GT yardsticks (ext 0.617 -> 0.589, public 0.675 -> 0.645): the model's team calls drift
+# later in the match, the rules' do not (INVESTIGATION.md section 17).
 DECODER = {"w_shape": 0.75, "cost_dead": 12.0, "cost_team": 12.0, "min_dead": 25,
-           "w_bound": 0.0, "kickoff": "half"}
+           "w_bound": 0.0, "kickoff": "half", "use_rules": True, "w_rule": 0.25}
 FEATFN = "full_plus3"
 SEED = 0
 
@@ -84,5 +88,5 @@ def predict(m, f, R):
     p = dict(decode.PARAMS, **DECODER)
     if p.get("em_prior"):
         p["train_prior"] = np.array([np.mean(y[mask] == k) for k in "HAD"])
-    no_rules = np.full(m.n, "X", dtype="<U1")
-    return decode.decode(m, no_rules, P, f["seen"], p, f, B), P
+    R_dec = R if p.get("use_rules") else np.full(m.n, "X", dtype="<U1")
+    return decode.decode(m, R_dec, P, f["seen"], p, f, B), P

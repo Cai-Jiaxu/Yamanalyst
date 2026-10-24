@@ -278,8 +278,15 @@ class Bench:
                       *out["masked"], *out["public"], time.time() - (t0 or time.time())),
                   flush=True)
             if val is not None:
-                print("{:<34} val (hand-labelled, {} possessions) {:.3f}/{:.3f}".format(
-                    "", self.val_poss, *val), flush=True)
+                R = self.val.R if use_rules else np.full(self.val.m.n, "X", dtype="<U1")
+                vc = pm.label_codes(decode.decode(self.val.m, R, P["public"],
+                                                  self.val.f["seen"], p, self.val.f,
+                                                  P.get("B:public")))
+                vr = pm.evaluate(self.val.gt, vc, bootstrap_n=0)
+                print("{:<34} val_h2 ({} possessions) spellF1/macroF1 {:.3f}/{:.3f} | "
+                      "teamAcc {:.3f} | deadF1 {:.3f}".format(
+                          "", self.val_poss, *val, vr["team_acc_both_alive"],
+                          vr["alive_dead_f1"]), flush=True)
             t = out["taxonomy"]
             print("{:<34} ext errors per 100 true possessions: split {:.1f} merge {:.1f} drift "
                   "{:.1f} missed {:.1f} spurious {:.1f} | pred/true {:.2f}".format(
@@ -317,7 +324,8 @@ def load_val(folder=None):
     """Code array over the whole match from every work/labels/*.csv (X elsewhere), or None."""
     import glob
     folder = folder or os.path.join(os.path.dirname(CACHE_DIR), "work", "labels")
-    paths = sorted(glob.glob(os.path.join(folder, "*.csv")))
+    paths = sorted(p for p in glob.glob(os.path.join(folder, "*.csv"))
+                   if not os.path.basename(p).startswith("ball_probe"))
     if not paths:
         return None
     lab = None

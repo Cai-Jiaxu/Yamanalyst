@@ -17,23 +17,25 @@ W0, W1 = 11185, 18685
 TAIL = 750
 
 
-def ball_mask(n, seed, frac=0.45, lo_s=4, hi_s=40, fps=25, weights=None, tail=TAIL):
+def ball_mask(n, seed, frac=0.45, lo_s=4, hi_s=40, fps=25, weights=None, tail=TAIL,
+              window=(W0, W1)):
     """weights: optional (n,) non-negative preference for where gaps start (window part used)."""
+    w0, w1 = window
     rng = np.random.default_rng(seed)
     hide = np.zeros(n, dtype=bool)
-    span = W1 - W0
+    span = w1 - w0
     w = None
     if weights is not None:
-        w = np.asarray(weights[W0:W1], dtype=float) + 1e-9
+        w = np.asarray(weights[w0:w1], dtype=float) + 1e-9
         w = w / w.sum()
-    while hide[W0:W1].mean() < frac:
+    while hide[w0:w1].mean() < frac:
         length = int(np.exp(rng.uniform(np.log(lo_s), np.log(hi_s))) * fps)
         if w is None:
-            a = W0 + rng.integers(0, span - length)
+            a = w0 + rng.integers(0, span - length)
         else:
-            a = W0 + min(int(rng.choice(span, p=w)), span - length)
+            a = w0 + min(int(rng.choice(span, p=w)), span - length)
         hide[a:a + length] = True
-    hide[W1:W1 + tail] = True
+    hide[w1:min(n, w1 + tail)] = True
     return hide
 
 
