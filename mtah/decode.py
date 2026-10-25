@@ -32,7 +32,25 @@ PARAMS = {
                           # (see kickoff.evidence)
     "w_bound": 0.0,       # weight of the boundary head's log-odds on the switch cost
     "snap_r": 0,          # frames; >0 moves each boundary to the nearest physical event (snap())
+    "stop_gate": 0,       # frames; >0: a live spell this short with dead ball on both sides while
+                          # the players walk becomes dead ball (stop_gate())
 }
+
+
+def stop_gate(labels, f, max_len, slow=1.3):
+    """A live spell of at most max_len frames between two dead spells, with the players' mean
+    pace under `slow` m/s, is the tracker following a ball returned or placed during a stoppage
+    (INVESTIGATION.md section 16), not a possession: it becomes dead ball."""
+    from scipy.ndimage import uniform_filter1d
+    pace = uniform_filter1d(np.nan_to_num((f["sh"] + f["sa"]) / 2), 25)
+    out = labels.copy()
+    b = np.concatenate(([0], np.flatnonzero(out[1:] != out[:-1]) + 1, [len(out)]))
+    for i in range(1, len(b) - 2):
+        a, z = b[i], b[i + 1]
+        if out[a] in "HA" and out[a - 1] == "D" and out[z] == "D" and z - a <= max_len \
+                and pace[a:z].mean() < slow:
+            out[a:z] = "D"
+    return out
 
 
 def viterbi(logE, T, bonus=None):
@@ -212,4 +230,6 @@ def decode(m, rule_labels, P_shape, seen, p=PARAMS, f=None, B=None):
         out = min_duration(out, p.get("min_dead", 0), p.get("min_poss", 0))
     if p.get("snap_r", 0) > 0 and f is not None:
         out = snap(out, f, p["snap_r"], m.fps)
+    if p.get("stop_gate", 0) and f is not None:
+        out = stop_gate(out, f, int(p["stop_gate"]))
     return out

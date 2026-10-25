@@ -1,6 +1,6 @@
 # Yamanalyst — MTAH 2027 Phase 1: ball possession from tracking
 
-*Technical document (SUBMISSION.md §3). Draft of 2026-10-24, for submission `final_v3`; the
+*Technical document (SUBMISSION.md §3). Draft of 2026-10-25, for submission `final_v5`; the
 numbers are refreshed at the code freeze (ROADMAP.md). Export to `Yamanalyst.pdf` for the form.*
 
 ## 1. The approach in one paragraph
@@ -21,7 +21,8 @@ read possession from the players when the ball is not there.
 | Precision over recall on switches | Error injection on the true labels: one 0.4 s blip/min → spellF1 0.77; missing every possession < 3 s → 0.83 |
 | Learn from **external** labelled matches, not from our 17 public possessions | The shape model trained on external true labels gets 93% team accuracy without the ball, against 83% from our own pseudo-labels; masked spellF1 +0.12 |
 | Degrade the external data to our tracker | Clean → degraded external tracking drops the rules from 0.61 to 0.37 spellF1. We resample our real ball-gap lengths, bias gaps towards dead ball (3×), drop players to our ~20.5 tracked, add team mislabels and position noise |
-| Rule outputs as **features**, not a vote in the decoder | +0.047 bench when the rule label became a feature and its decoder term was removed |
+| Rule outputs as **features**, not a vote in the decoder | +0.047 bench when the rule label became a feature and its decoder term was removed. Re-checked at `final_v5`: on the real ground truth the rules switch possession a median 1.6 s before it does (at the pass, not the controlled touch); a rule vote costs 0.025–0.03 on every real-GT yardstick |
+| Judge boundary timing only on real ground truth | Our eye-labelled 2nd-half windows put possession changes where the rules do (0–2 frames), so the rules alone, last on every real-GT yardstick, score best there. We use those windows only for timing-free checks: mid-possession team calls, dead ball, spell counts |
 | Mirrored (left/right, home/away) and extra-noise copies of every external match | +0.039, the largest single gain |
 | Choose on a benchmark, never on the public window | The public window is the best-tracked part of the match (ball seen 88–99% of the time there, 59% over the match) and has 17 possessions. We rank on external matches (fold by match, ~3,000 possessions) plus our public window with the ball hidden the way the full match loses it (16 seeds) |
 
@@ -37,10 +38,14 @@ read possession from the players when the ball is not there.
 | Smart Tagging | tried, **dropped** | set-piece tags start 3–12 s before the true restart; team-phase tags agree with the true team on 77% of live frames, below the model's ~90% |
 | PFF World Cup data | not used | personal sign-up required |
 
+The Metrica sample data carries no licence file upstream (its README asks for attribution and responsible use); we use it for training only and do not redistribute it. IDSSE is CC BY 4.0 (Bassek et al., *Sci Data* 2025).
+
 Also measured and not adopted: velocity-projected pitch control (no change on bench, +0.013 on `val_h2`),
 CatBoost alone or averaged with the trees (−0.015 to −0.024 on the screen), self-training on our own
 unlabelled match (−0.016 on bench, +0.013 on `val_h2`), a minimum dead-ball length inside the Viterbi
-search (no change).
+search (no change), minimum-Bayes-risk decoding for expected spellF1 (+0.001), and a learned temporal
+refiner (bidirectional GRU or dilated TCN) over the trees' probabilities: +0.011–0.017 on held-out external
+matches but −0.02–0.03 on our own masked window, because it learns the external sources' label conventions.
 
 ## 4. The possession rules we implemented
 
@@ -68,11 +73,15 @@ alive↔dead switch.
 | official baseline (smooth50) | 0.326 | 0.621 | — | — |
 | rules only (`rules_v2`) | 0.461 | 0.852 | — | 0.655 (macroF1 0.865, collarMF1 0.883) |
 | `final_v2` | 0.700 | 0.898 | 0.656 | 0.577 (lowIoU 0.722, teamAcc 0.891, deadF1 0.938, collarMF1 0.895) |
-| **`final_v3` (submitted)**: + rule labels voting in the decoder | 0.653 | 0.904 | 0.632 | **0.627** (macroF1 0.873) |
+| `final_v3`: + rule labels voting in the decoder | 0.653 | 0.904 | 0.632 | 0.627 (macroF1 0.873) |
+| `final_v4`: + stoppage gate | 0.653 | 0.904 | 0.636 | 0.632 (macroF1 0.875) |
+| **`final_v5` (submitted)**: `final_v2` decoder + stoppage gate | **0.723** | **0.910** | **0.661** | 0.593 |
 
-We chose `final_v3` on our own hand-labelled 2nd half, against the external and public scores:
-the model's team calls drift later in the match even with the ball visible, and the rules, which
-read the ball directly, do not.
+Public columns are the delivered full-fit files; the benchmark uses the fold models. `final_v3`/`v4`
+were chosen on the hand-labelled 2nd half; `final_v5` reverses that because those labels reward the
+rules' timing (§2): on the benchmark's external matches `final_v5` scores 0.616 against 0.589, on the
+masked window 0.706 against 0.683. Mid-possession (> 3 s from a change) its team error on the 2nd-half
+windows is 4.4%, the same as `final_v4`'s 4.3%.
 
 Remaining errors on external matches, per 100 true possessions: missed 22, boundary drift 19,
 merged 11, spurious 3.6, split 2.1. A large part of "missed" is IDSSE's very brief possessions,
@@ -100,9 +109,9 @@ stoppage-ball gating when player pace is below 1.3 m/s and no player is within 5
 uv sync                                   # Python 3.11 via uv
 # match data into data/ (DATA.md); external data:
 bash scripts/download_external.sh && uv run python -m mtah.external
-uv run python run.py --name final_v3      # -> evaluation/results/final_v3.csv
-python evaluation/validate_submission.py evaluation/results/final_v3.csv
+uv run python run.py --name final_v5      # -> evaluation/results/final_v5.csv
+python evaluation/validate_submission.py evaluation/results/final_v5.csv
 ```
 
-Deterministic: the output's sha256 starts `3b01921e`. First run ~30–60 min (caches), then ~11 min.
+Deterministic: the output's sha256 starts `4089da23`. First run ~30–60 min (caches), then ~11 min.
 Every number above comes from a script in `analysis/` (INVESTIGATION.md maps each to its script).

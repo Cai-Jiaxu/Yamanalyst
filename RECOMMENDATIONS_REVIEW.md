@@ -145,3 +145,25 @@ rejected; the same work done by a person with local tools is fine.
 | 7 | A helper that pre-marks candidate boundaries from model output for the labeller | **No** | Labels steered by the model cannot validate it (PLAN.md) |
 | 8 | "R3 in 45 minutes" | **No** | A few hours per window is realistic; eye labels also follow a different convention from the tracker-generated GT |
 | 9 | `ball_value.py` passes stale rule labels and crashes | **No (checked)** | `full_plus3` recomputes the rules from the new features; stored rule labels are only read with `use_rules=True` |
+
+# Review of the sixth feedback (integrated research and technical report, 2026-10-25)
+
+A decoder-level study on cached `P_R1` plus a literature matrix. Its bottom line, "retain
+`final_v4`", is not supported by its own yardsticks: it selects on ext + masked, and on those the
+`final_v2` decoder + stop gate beats `v4` (bench 0.661 vs 0.636, ext 0.616 vs 0.589, masked 0.706
+vs 0.683; INVESTIGATION.md §20). Its arms were all built on `v4`'s rule-voting decoder.
+
+| # | claim | verdict | why |
+|---|---|---|---|
+| 1 | Retain `final_v4` weights and decoder | **No** | See above; the rule vote was chosen on eye labels that reward rule timing (§20) |
+| 2 | C1 abstention (global / guarded X at 0.60): no robust gain | **Accept (their measurement)** | Matches EVALUATION.md: X is spellF1-neutral inside a possession and harmful at a hand-off; not rerun |
+| 3 | C2 dwell filter 12 frames: null | **Accept** | Same as our in-Viterbi dwell (§11) |
+| 4 | C3 two-stage alive/dead then team decoder: worse everywhere | **Accept** | Not rerun; decoder-level on the same probabilities |
+| 5 | HGB beats a linear (SGD) model by +0.094 spellF1 on 3 held-out IDSSE matches | **Accept** | The model family is not the weak link |
+| 6 | Fold-probability results were never retested on the full fit | **Do** | Applies to `final_v5` too: the delivered full-fit file is scored on public and val_h2 before adoption |
+| 7 | Keep the delivered-file and fold-ensemble public numbers apart (0.653 vs 0.667 for `v4`) | **Do** | README and the technical document label which is which |
+| 8 | Report external results per provider | **Done** | `analysis/yardsticks.py` prints IDSSE and Metrica separately |
+| 9 | Metrica sample-data licence unresolved (no LICENSE upstream) | **Do** | One line in the technical document's assets section |
+| 10 | O1 fresh independently labelled matches as top priority | **Defer** | No ready source in our convention (PFF needs a personal sign-up; SkillCorner has no per-frame possession); not before the 14 Nov freeze |
+| 11 | O3 duration prior + weak labels | **No** | Dwell and minimum-possession variants already null (§11, item 3) |
+| 12 | Cached runner with a drift guard (`research/possession_discovery_2026/`) | **Defer** | Good engineering, but pinned to `v4`'s hashes; `run.py` stays canonical |

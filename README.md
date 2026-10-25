@@ -18,7 +18,9 @@ The official challenge docs from Metrica's starter repository are kept as they w
 | `rules_v2` (hand-written rules) | 0.461 | 0.852 | — | 0.655 (collarMF1 0.883) |
 | `final_v1` | 0.700 | 0.898 | 0.656 | 0.558 (collarMF1 0.894) |
 | `final_v2`: final_v1 + dead ball before the 2nd-half kickoff | 0.700 | 0.898 | 0.656 | 0.577 (collarMF1 0.895) |
-| **`final_v3` (current submission)**: final_v2 + rule labels voting in the decoder (w 0.25) | **0.653** | **0.904** | 0.632 | **0.627** (macroF1 0.873) |
+| `final_v3`: final_v2 + rule labels voting in the decoder (w 0.25) | 0.653 | 0.904 | 0.632 | 0.627 (macroF1 0.873) |
+| `final_v4`: final_v3 + stoppage gate | 0.653 | 0.904 | 0.636 | 0.632 (macroF1 0.875) |
+| **`final_v5` (current submission)**: final_v2 decoder + stoppage gate | **0.723** | **0.910** | **0.661** | 0.593 (timing-biased, §20) |
 
 \* `bench` is the yardstick we choose on, not the public window: the mean spellF1 over 9 external
 matches noised to look like ours, and over our public window with the ball hidden the way the
@@ -27,9 +29,11 @@ possessions. **Never pick a version because it scores better there.**
 \*\* `val_h2` (`analysis/r3_eval.py`, `INVESTIGATION.md` §16) scores four 5-minute 2nd-half windows
 (`30,000` frames, 57 live possessions) in `work/labels/val_h2_*.csv` (`0.558` fold ensemble, `0.577`
 full-fit `final_v2.csv`, `0.722` relaxed-IoU `spellF1`, `0.891` live `teamAcc`, `0.938` `deadF1`).
-`final_v3` was chosen on `val_h2` over the bench and public window on purpose: the real-GT
-yardsticks cover other leagues and the match's best-tracked 5 minutes, while `val_h2` is our own
-2nd half (INVESTIGATION.md §17–18).
+`final_v3` was chosen on `val_h2` over the bench and public window; `final_v5` reverses that:
+the eye labels put possession changes where the rules do, while the real GT puts them a median
+1.6 s later, so `val_h2` spellF1 rewards rule timing (the rules alone score best there and worst
+on every real-GT yardstick; INVESTIGATION.md §20). `val_h2` is now used only for timing-free
+checks. Public columns are the delivered full-fit files; bench uses the fold models.
 
 **What we do next, and its status: [ROADMAP.md](ROADMAP.md)** (the source of truth for open work).
 How we got here, with every number reproducible: [INVESTIGATION.md](INVESTIGATION.md).
@@ -66,12 +70,12 @@ uv sync                      # behind a corporate TLS proxy: UV_SYSTEM_CERTS=1 u
 
 ```bash
 uv run python run.py                      # -> evaluation/results/final.csv, validated
-uv run python run.py --name final_v3      # the same, under another name
+uv run python run.py --name final_v5      # the same, under another name
 uv run python evaluation/run_evaluation.py --no-detail     # public-window scoreboard
 ```
 
-`run.py` is deterministic: it reproduces `final_v3` byte for byte (sha256 `3b01921e68d07f5e…`).
-`final_v2` was `59e7b27fbcfbb325…`.
+`run.py` is deterministic: it reproduces `final_v5` byte for byte (sha256 `4089da237ca8780a…`).
+`final_v4` was `0bc6e8c0…`, `final_v3` `3b01921e…`, `final_v2` `59e7b27f…`.
 `final_v2` differs from `final_v1` (`34f6c958…`) only on the 2nd half's 2,934 pre-kickoff frames
 (INVESTIGATION.md §10).
 The first run builds caches (about 30–60 min); later runs take about 11 min. Older methods are

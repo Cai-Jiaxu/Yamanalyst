@@ -11,11 +11,17 @@ as the result. Everything else has one job:
 | [README.md](README.md) | how to run it and the current submission |
 | [PLAN.md](PLAN.md) | the day-1 plan, historical |
 
-Last updated 2026-10-23.
+Last updated 2026-10-25.
 
 ## Where we stand
 
-**`final_v3`** (2026-10-24): public spellF1 0.653, **val_h2 0.627** (was 0.577), chosen on our own
+**`final_v5`** (2026-10-25) = `final_v2` decoder + stoppage gate, no rule vote: bench **0.661** (ext 0.616,
+masked 0.706), public 0.723 on the delivered file. It reverses `final_v3`/`v4`: the eye-labelled
+`val_h2` rewards the rules' boundary timing, which the real GT puts 1.6 s later (INVESTIGATION.md §20);
+val_h2 is now a timing-free check only. Since then measured and not adopted: MBR decoding (§21),
+GRU/TCN temporal refiners (§22–23: ext +0.011–0.017, masked −0.02–0.03).
+Before: **`final_v4`** = `final_v3` + stoppage gate: public 0.653, val_h2 0.632.
+`final_v3` (2026-10-24): public spellF1 0.653, val_h2 0.627 (was 0.577), chosen on our own
 2nd half over the bench (0.632) on purpose (INVESTIGATION.md §17–18). Before it, `final_v2`:
 bench **0.656** (ext 0.617, masked 0.695), public spellF1 0.675 on the bench decoder
 (0.700 for the delivered file). It is `final_v1` plus dead ball before the 2nd-half kickoff. Remaining error on external matches, per 100 true possessions:
@@ -79,9 +85,13 @@ model-suggested boundaries for labellers, and its unmeasured timing figures.
 | R7 | Minimum dead-ball dwell inside Viterbi (instead of post-hoc `min_dead`) | Review 4 #4; post-hoc gave +0.004 | hours, decoder only | bench rule | **done, not adopted**: 0.656 = no change (INVESTIGATION.md §11) |
 | R8 | Velocity-projected pitch control | Review 4 #2 | screen, then one refit | rule 7 screen, then bench rule | **done, not adopted**: screen +0.014, full fit 0.656 = no change (INVESTIGATION.md §13, §15) |
 | R10 | **Why the model drifts in the 2nd half** | val_h2 team accuracy 0.78–0.94 vs 0.958 public | hours | — | **done** (§18): errors happen with the ball visible and are confident; model and rules each win in different windows |
-| R11 | **Per-frame stacker** of model probabilities and rule evidence, fitted in-domain with leave-one-window-out CV over public + the 4 val windows (5 folds); a handful of parameters only (e.g. logistic on log P, rule vote, ball-near, on-ball distance margin) | §18: neither source dominates, so a per-frame choice beats any fixed blend | hours, decoder-level, no refit | must beat `final_v3` on every held-out window on average and not lose public by > 0.02 | **done, not adopted** (§19): held-out val +0.029 but public −0.080, window 2 −0.137 |
+| R11 | **Per-frame stacker** of model probabilities and rule evidence, fitted in-domain with leave-one-window-out CV over public + the 4 val windows (5 folds); a handful of parameters only (e.g. logistic on log P, rule vote, ball-near, on-ball distance margin) | §18: neither source dominates, so a per-frame choice beats any fixed blend | hours, decoder-level, no refit | must beat `final_v3` on every held-out window on average and not lose public by > 0.02 | **done**: stacker not adopted (public −0.08, ext −0.12); its stoppage gate adopted → **`final_v4`** (val_h2 0.632, possessions 286 → 278; INVESTIGATION.md §19) |
 | R13 | **Stoppage-blip gate**: live spell ≤ 4 s between dead balls while players walk → dead | §16: ATD tracks a returned ball in stoppages | minutes, post-decode | does no harm on any yardstick | **measured, awaiting adoption** (§19): on `final_v3` public +0.022, masked +0.008, ext/val unchanged |
 | R12 | Make the model trust a visible ball: an augmentation copy with milder ball/team noise where the ball is seen (our ATD is cleaner there than the simulation) | §18: model errs with the ball visible | one refit | val_h2 + ext | after R11 |
+| R14 | **Audit the yardsticks**: where do H↔A changes land on real GT vs eye labels? | §18–19 chose on val_h2 against every real-GT yardstick | hours, cached `P_R1` | — | **done → `final_v5`** (§20): rules 1.6 s early on real GT, 0–2 frames on eye labels; v2 decoder + gate +0.025 bench |
+| R15 | Segmental MBR decoding for expected spellF1 | Viterbi optimises path probability, not the metric | hours, decoder only | bench rule | **done, not adopted**: +0.001 (§21) |
+| R16 | Learned temporal refiner (GRU / TCN) over the trees' probabilities | MS-TCN / ASRF; Kaggle CMI sleep | ~1–2 h CPU per run | bench rule | **done, not adopted**: ext +0.011–0.017, masked −0.02–0.03, public −0.04–0.06; learns external label conventions (§22–23) |
+| R17 | Short-possession recall | 20–30% of true spells are < 2 s, recall ~0.19 (§20) | open | bench rule | open: the only large error mass left; any gain must come without spurious spells |
 | R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **draft**: `Yamanalyst.md` (refresh numbers at the freeze; export to PDF, `*.pdf` is gitignored) |
 
 Not on the list, and why: Smart Tagging fusion, `is_metrica`, X on boundaries, EM prior,

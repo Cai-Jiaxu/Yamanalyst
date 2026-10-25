@@ -27,12 +27,15 @@ MODEL = {"max_iter": 600}
 # full kickoff evidence (-0.008). Adopted in final_v2: kickoff='half', dead ball before the 2nd
 # half's kickoff only (bench unchanged, 0.656; fixes 19 spurious spells in our 2,934 pre-kickoff
 # frames, which the bench cannot see -- analysis/kickoff_modes.py).
-# Adopted in final_v3: the rule labels also vote in the decoder (use_rules, w_rule 0.25). On the
-# hand-labelled 2nd half every window improves (val_h2 0.558 -> 0.630) at a cost of ~0.03 on the
-# real-GT yardsticks (ext 0.617 -> 0.589, public 0.675 -> 0.645): the model's team calls drift
-# later in the match, the rules' do not (INVESTIGATION.md section 17).
+# final_v3/v4 let the rule labels vote in the decoder (w_rule 0.25), chosen on the eye-labelled
+# 2nd half. Reverted in final_v5: those labels put H<->A changes where the rules do, while the
+# real GT puts them a median 1.6 s later, so they reward rule timing (the rules alone score best
+# there and worst on every real-GT yardstick; INVESTIGATION.md section 20).
+# final_v4 added stop_gate (short live blips inside stoppages -> dead ball; section 19), kept.
+# final_v5 = final_v2 decoder + stop_gate: bench 0.636 -> 0.661, ext 0.589 -> 0.616,
+# public 0.667 -> 0.697 on the fold models (analysis/rev_v4.py).
 DECODER = {"w_shape": 0.75, "cost_dead": 12.0, "cost_team": 12.0, "min_dead": 25,
-           "w_bound": 0.0, "kickoff": "half", "use_rules": True, "w_rule": 0.25}
+           "w_bound": 0.0, "kickoff": "half", "use_rules": False, "stop_gate": 100}
 FEATFN = "full_plus3"
 SEED = 0
 

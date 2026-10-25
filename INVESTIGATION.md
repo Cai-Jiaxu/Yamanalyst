@@ -652,3 +652,141 @@ ball during a stoppage). Pre-specified from §16, one setting, not tuned here.
   window unchanged; on `final_v2` bench +0.005, public +0.022, masked +0.011, win 2 +0.024. On
   `final_v3` the bench gain (+0.004) is just under rule 1's 0.005, so it qualifies on the R1-style
   "does no harm + fixes a known error" basis (§16).
+
+## 19. R11: per-frame stacker (not adopted) and the stoppage gate (`final_v4`, `analysis/r11_stack.py`)
+
+A multinomial logistic stacker (10 inputs: model log-probabilities, rule vote × ball near, ball
+near, on-ball distance margin, ball seen, ball speed) fitted in-domain with leave-one-window-out CV
+over the public window and the four val windows; ext scored by the stacker fitted on all 5, masked
+by the one fitted on the 4 val windows only. Decoder-level on cached `P_R1`:
+
+| config | bench | ext | masked | public | win 1 | win 2 | win 3 | win 4 | val avg |
+|---|---|---|---|---|---|---|---|---|---|
+| `final_v2` decoder | 0.656 | 0.617 | 0.695 | 0.675 | 0.594 | 0.533 | 0.717 | 0.450 | 0.573 |
+| `final_v3` | 0.632 | 0.589 | 0.675 | 0.645 | 0.648 | 0.589 | 0.800 | 0.530 | 0.642 |
+| **`final_v3` + stoppage gate (`final_v4`)** | 0.636 | 0.589 | 0.683 | **0.667** | 0.648 | 0.589 | 0.800 | 0.530 | 0.642 |
+| stacker | 0.505 | 0.469 | 0.541 | 0.565 | 0.662 | 0.452 | 0.848 | 0.722 | 0.671 |
+| stacker + gate | 0.506 | 0.468 | 0.543 | 0.565 | 0.662 | 0.473 | 0.883 | 0.722 | 0.685 |
+
+- **Stacker: not adopted.** Held-out val +0.043, but public −0.080 and ext −0.120, and window 2
+  falls: fitted mostly on eye labels, it leans on the rules further than the real GT supports.
+- **Stoppage gate: adopted** (`decode.stop_gate`, `stop_gate=100`): a live spell of ≤ 4 s between
+  two dead spells while the players walk becomes dead ball. Public +0.022 and masked +0.008 on the
+  fold ensemble, val and ext unchanged. On the delivered file (full-fit model) public stays 0.653,
+  `val_h2` 0.627 → **0.632**, full-match possessions 286 → 278. sha256 `0bc6e8c049b0cd22`.
+
+## 20. The eye labels reward rule timing; back to the `final_v2` decoder (`analysis/boundary_offsets.py`, `err_locus.py`, `rev_v4.py`)
+
+`final_v3`/`v4` were chosen on `val_h2` against all three real-GT yardsticks (§17–19). Three
+measurements on cached `P_R1` say `val_h2`'s official spellF1 cannot make that call.
+
+**Where H↔A changes land.** Offset = predicted − labelled change (frames), nearest same-kind
+change within 5 s:
+
+| labels | n | model (`final_v2` decoder) median [IQR] | rules median [IQR] |
+|---|---|---|---|
+| public, real GT | 12 | +4 [−10, +8] | **−39 [−82, −14]** |
+| `val_h2`, eye labels | 31 | +1 [−22, +18] | **+0 [+0, +2]** |
+
+On the real GT the rules switch a median 1.6 s early (at the pass, before the new team's
+controlled touch); the model is centred. On the eye labels the rules' changes coincide with the
+labelled ones to 0–2 frames. (Restarts: real GT model −22 / rules +25, eye +1 / +10; stops: real
+GT model +41 / rules −1, eye +1 / 0; n = 4 each on the public window, so only indicative.)
+
+**Where team errors are.** Live frames by distance to the nearest labelled change, error rate
+`<1 s / 1–3 s / >3 s`: public (GT) model 0.21/0.05/0.01 vs rules 0.37/0.21/0.04; across the four
+eye-labelled windows the model is 0.20–0.39 / 0.11–0.25 vs rules 0.10–0.32 / 0.08–0.21 near
+changes, and mid-possession (> 3 s) the model is as good as or better than the rules in every
+window (win 4: 0.15 vs 0.16, the only window where both are high). The 2nd-half "drift" of §18 is
+near changes, i.e. timing.
+
+**Every decoder on every yardstick** (`analysis/yardsticks.py`, `rev_v4.py`; valLo = val spellF1
+at IoU 0.1–0.3, valMid = val team error > 3 s from a change):
+
+| decoder | bench | ext | masked | public | val | valLo | valMid |
+|---|---|---|---|---|---|---|---|
+| rules only | 0.319 | 0.355 | 0.284 | 0.461 | **0.652** | 0.792 | 0.064 |
+| `final_v2` | 0.656 | 0.617 | 0.695 | 0.675 | 0.573 | 0.735 | 0.046 |
+| **`final_v2` + stop gate (`v2g`)** | **0.661** | 0.616 | **0.706** | **0.697** | 0.579 | 0.742 | 0.046 |
+| `final_v3` | 0.632 | 0.589 | 0.675 | 0.645 | 0.642 | 0.780 | 0.047 |
+| `final_v4` | 0.636 | 0.589 | 0.683 | 0.667 | 0.642 | 0.780 | 0.047 |
+
+The rules alone, last on every real-GT yardstick, are **first on `val_h2`**. `val_h2` spellF1
+therefore measures agreement with touch timing and must not choose boundary placement; it stays
+valid for mid-possession team calls, dead-ball detection and spell counts. **Decision: `v2g`
+(no rule vote, stop gate kept)**: +0.025 bench, +0.027 ext, +0.030 public over `final_v4`.
+
+**Where `v2g` still loses** (`analysis/miss_by_len.py`, recall at IoU 0.5 by true duration
+`<2 s | 2–5 | 5–10 | 10–20 | >20 s`): IDSSE share 0.30/0.31/0.19/0.12/0.09, recall
+0.18/0.48/0.74/0.87/0.90; Metrica share 0.20/0.26/0.18/0.20/0.15, recall 0.20/0.51/0.74/0.83/0.76;
+public share 0.12/0.24/0.24/0.12/0.29 (2 of 17 under 2 s, both missed). Short possessions are
+the main loss.
+
+## 21. Segmental MBR decoding for spellF1 (`mtah/mbr.py`, `analysis/mbr_eval.py`)
+
+Viterbi maximises path probability; spellF1 counts matched possessions. MBR (Goel & Byrne 2004,
+speech recognition) instead picks, stretch by stretch between dead balls on which every
+candidate agrees, the candidate with the largest expected `2 TP − F1_ref · N` (the first-order
+change of `2 TP / (G + N)`) against 24 paths sampled from the decoder's own posterior (forward
+filtering, backward sampling). Candidates: the full `v2g` decode at switch-cost scales
+0.5/0.7/1/1.4/2. Cached `P_R1`, no fitting:
+
+| decoder | bench | ext | masked | public | val | valLo |
+|---|---|---|---|---|---|---|
+| `v2g` Viterbi | 0.661 | 0.616 | 0.706 | 0.697 | 0.579 | 0.742 |
+| MBR, temperature 1 | 0.662 | 0.620 | 0.705 | 0.697 | 0.576 | 0.742 |
+| MBR, temperature 2 | 0.661 | 0.621 | 0.702 | 0.697 | 0.575 | 0.734 |
+
+**Not adopted** (+0.001 bench, under rule 1). With the tuned costs, Viterbi already sits where
+the expected metric peaks for these probabilities; choosing among cost scales per stretch moves
+ext by +0.004–0.005 and masked by −0.001–0.004. The option stays in `mtah/mbr.py`.
+
+## 22. A learned temporal refiner on the trees' probabilities (`mtah/refiner.py`, `analysis/refine_eval.py`)
+
+The temporal stage of MS-TCN / ASRF (action segmentation) and of the GRU/UNet heads that won
+Kaggle's CMI sleep-state segmentation: a 2-layer bidirectional GRU at 5 fps over 13 per-frame
+inputs (tree log-probabilities, boundary-head logit, ball seen / near, rule vote × near, distance
+margin, ball speed, team pace, time since ball seen), trained on external matches with true labels
+and home/away mirrors. Ext matches are refined by a GRU trained on the other two folds'
+out-of-fold probabilities; our match by one trained on all 9 (3 seeds each). Output blended
+geometrically with the trees (`a` = refiner share), then the `v2g` decoder.
+
+| | bench | ext | idsse | metrica | masked | public | val | valLo |
+|---|---|---|---|---|---|---|---|---|
+| `v2g` | **0.661** | 0.616 | 0.607 | 0.648 | **0.706** | **0.697** | 0.579 | 0.742 |
+| a 0.5, costs × 1 | 0.647 | 0.620 | 0.607 | 0.668 | 0.674 | 0.657 | 0.571 | 0.741 |
+| a 0.5, costs × 0.5 | 0.654 | **0.633** | 0.620 | 0.677 | 0.675 | 0.640 | 0.572 | 0.743 |
+| a 1, costs × 1 | 0.634 | 0.614 | 0.596 | 0.678 | 0.654 | 0.621 | 0.550 | 0.705 |
+| a 1, costs × 0.5 | 0.641 | 0.630 | 0.614 | 0.685 | 0.652 | 0.621 | 0.548 | 0.714 |
+
+The largest ext gain of any change since R1 (+0.017, both sources), but our window loses
+(masked −0.031, public −0.057, fewer spells: 14 → 11–13). **Fails rule 1 as run.** A confound: the
+refiner learned from single fold-model probabilities, while our match was given the 3-model
+average, which is smoother. Round 2 (§23) removes it.
+
+## 23. Refiner round 2: a dilated TCN, and the input mismatch removed (`analysis/fold_probs.py`, `refine_eval2.py`)
+
+Single-stage MS-TCN (8 residual dilated conv layers, ±51 s at 5 fps), boundary-head input
+dropped. Our match refined either from the 3-model average (as in §22) or once per fold model
+(`cache/P_R1_folds.npz`; the three fold models reproduce `P_R1` to 1e-7) and averaged, so the
+refiner sees the same single-model inputs it was trained on.
+
+| our-match input | a | costs | bench | ext | idsse | metrica | masked | public | val |
+|---|---|---|---|---|---|---|---|---|---|
+| — (`v2g`) | — | × 1 | **0.661** | 0.616 | 0.607 | 0.648 | **0.706** | **0.697** | 0.579 |
+| average | 0.5 | × 1 | 0.650 | 0.618 | 0.606 | 0.659 | 0.683 | 0.650 | 0.581 |
+| average | 0.5 | × 0.5 | 0.655 | **0.627** | 0.616 | 0.668 | 0.682 | 0.650 | 0.582 |
+| average | 1 | × 1 | 0.643 | 0.607 | 0.591 | 0.664 | 0.679 | 0.662 | 0.578 |
+| average | 1 | × 0.5 | 0.649 | 0.620 | 0.607 | 0.667 | 0.677 | 0.642 | 0.580 |
+| per fold | 0.5 | × 1 | 0.649 | 0.618 | 0.606 | 0.659 | 0.681 | 0.650 | 0.576 |
+| per fold | 0.5 | × 0.5 | 0.655 | 0.627 | 0.616 | 0.668 | 0.683 | 0.650 | 0.582 |
+| per fold | 1 | × 1 | 0.642 | 0.607 | 0.591 | 0.664 | 0.678 | 0.662 | 0.574 |
+| per fold | 1 | × 0.5 | 0.649 | 0.620 | 0.607 | 0.667 | 0.678 | 0.637 | 0.598 |
+
+- **The mismatch was not the cause**: per-fold and averaged inputs score the same on our window.
+- **The refiner learns the external conventions, not possession in general.** Under leave-fold-out
+  CV it gains on ext (+0.011, both sources, GRU or TCN), and it loses 0.02–0.03 masked and
+  0.035–0.06 public on our match every time. Ext GT comes from DFL / Metrica-event conventions
+  (IDSSE counts brief touches, §6), so a stage that models label *sequences* picks up exactly what
+  differs between them and our GT; the per-frame trees transfer better.
+- **Not adopted** (rule 1, two architectures, eight settings). `mtah/refiner.py` stays as a tool.
