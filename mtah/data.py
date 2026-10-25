@@ -6,7 +6,7 @@ Everything is indexed by VIDEO frame (submission row). The ATD counts from 1, so
 lands in row frame_id - 1. Coordinates stay normalised 0-1 here; metres are a feature-time choice.
 
 Nothing in this module prints data values -- only shapes and coverage -- because the match data
-must not leave this machine (see OVERVIEW.md on hosted LLMs).
+must not leave this machine (see challenge/FAQ.md on hosted LLMs).
 """
 
 import io

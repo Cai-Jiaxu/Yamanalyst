@@ -1,7 +1,8 @@
 # Yamanalyst — MTAH 2027 Phase 1: ball possession from tracking
 
-*Technical document (SUBMISSION.md §3). Draft of 2026-10-25, for submission `final_v5`; the
-numbers are refreshed at the code freeze (ROADMAP.md). Export to `Yamanalyst.pdf` for the form.*
+*Technical document (challenge/SUBMISSION.md §3). Draft of 2026-10-25, for submission `final_v5`.
+Its numbers are copied from docs/INVESTIGATION.md (the source of truth) and refreshed at the code
+freeze (docs/ROADMAP.md). Export to `Yamanalyst.pdf` for the form.*
 
 ## 1. The approach in one paragraph
 
@@ -45,7 +46,8 @@ CatBoost alone or averaged with the trees (−0.015 to −0.024 on the screen), 
 unlabelled match (−0.016 on bench, +0.013 on `val_h2`), a minimum dead-ball length inside the Viterbi
 search (no change), minimum-Bayes-risk decoding for expected spellF1 (+0.001), and a learned temporal
 refiner (bidirectional GRU or dilated TCN) over the trees' probabilities: +0.011–0.017 on held-out external
-matches but −0.02–0.03 on our own masked window, because it learns the external sources' label conventions.
+matches but −0.02–0.03 on our own masked window, because it learns the external sources' label conventions. Touch-sequence and kick features aimed at
+short possessions: +0.040 on the fast screen, +0.001 once the full training recipe is used.
 
 ## 4. The possession rules we implemented
 
@@ -114,4 +116,4 @@ python evaluation/validate_submission.py evaluation/results/final_v5.csv
 ```
 
 Deterministic: the output's sha256 starts `4089da23`. First run ~30–60 min (caches), then ~11 min.
-Every number above comes from a script in `analysis/` (INVESTIGATION.md maps each to its script).
+Every number above comes from a script in `analysis/` (docs/INVESTIGATION.md maps each to its script).

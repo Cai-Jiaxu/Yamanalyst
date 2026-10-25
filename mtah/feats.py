@@ -309,3 +309,70 @@ def controlled_labels(labels, min_frames=25):
         if cur in "HA" and prev == nxt and prev in "HA" and prev != cur and z - a < min_frames:
             out[a:z] = prev
     return out
+
+
+def _team_code(t):
+    return 1.0 if t == "H" else -1.0
+
+
+def flight_block(m, f, cap=125, win=50):
+    """ROADMAP R17: the touch SEQUENCE around each frame, for short possessions. The other blocks
+    see touches through +-1..10 s smoothing, which averages a 1-2 s possession away. Per frame:
+    team (+1 H / -1 A) and length of the last and next on-ball episode, the episode before the
+    last and after the next (a second touch confirms control, CHALLENGE.md), frames since the
+    last / until the next episode, episodes per team within +-2 s, and kick events (ball speed
+    jump with a player close) with the kicker's team."""
+    from mtah import rules
+    n = m.n
+    p = rules.PARAMS
+    ob = rules.on_ball(f, p)
+    eps = rules.episodes(ob, p, 0, n)
+    t = np.arange(n)
+    cols = []
+    if eps:
+        team = np.array([_team_code(e[0]) for e in eps], dtype=np.float32)
+        st = np.array([e[1] for e in eps])
+        en = np.array([e[2] for e in eps])
+        ln = (en - st).astype(np.float32)
+        i = np.searchsorted(st, t, "right") - 1            # last episode started at or before t
+        j = i + 1                                           # next episode
+
+        def take(v, k, fill=0.0):
+            ok = (k >= 0) & (k < len(v))
+            return np.where(ok, v[np.clip(k, 0, len(v) - 1)], fill).astype(np.float32)
+        since = np.where(i >= 0, np.maximum(t - take(en, i, -cap), 0), cap)
+        until = np.where(j < len(st), take(st, j, n + cap) - t, cap)
+        cols += [take(team, i), take(ln, i), take(team, i - 1), take(team, j), take(ln, j),
+                 take(team, j + 1), np.minimum(since, cap), np.minimum(until, cap)]
+        hs = np.zeros(n + 1, np.float32)
+        as_ = np.zeros(n + 1, np.float32)
+        np.add.at(hs, st[team > 0] + 1, 1)
+        np.add.at(as_, st[team < 0] + 1, 1)
+        hs, as_ = np.cumsum(hs), np.cumsum(as_)
+        lo, hi = np.clip(t - win, 0, n), np.clip(t + win + 1, 0, n)
+        cols += [hs[hi] - hs[lo], as_[hi] - as_[lo]]
+    else:
+        cols += [np.zeros(n, np.float32)] * 6 + [np.full(n, cap, np.float32)] * 2 + \
+                [np.zeros(n, np.float32)] * 2
+    # kicks: ball speed rises by > 4 m/s within 4 frames to > 6 m/s, a player within 2.5 m
+    bs = np.nan_to_num(f["bspeed"])
+    seen = f["seen"].astype(bool)
+    jump = np.zeros(n, bool)
+    jump[1:-3] = seen[1:-3] & seen[4:] & (bs[4:] - bs[:-4] > 4.0) & (bs[4:] > 6.0)
+    near = np.fmin(np.nan_to_num(f["dh"], nan=99), np.nan_to_num(f["da"], nan=99)) < 2.5
+    kick = jump & near
+    kick[1:] &= ~kick[:-1]
+    kt = np.where(np.nan_to_num(f["dh"], nan=99) <= np.nan_to_num(f["da"], nan=99), 1.0, -1.0)
+    ks, ku = _since(kick, cap)
+    idx = np.where(kick, t, -1)
+    last = np.maximum.accumulate(idx)
+    idx2 = np.where(kick, t, n)
+    nxt = np.minimum.accumulate(idx2[::-1])[::-1]
+    cols += [ks, ku, np.where(last >= 0, kt[np.maximum(last, 0)], 0.0),
+             np.where(nxt < n, kt[np.minimum(nxt, n - 1)], 0.0)]
+    return np.stack([np.asarray(c, np.float32) for c in cols], 1)
+
+
+def full_plus5(m, f, Xs):
+    """R17: full_plus3 + touch-sequence / kick block."""
+    return np.hstack([full_plus3(m, f, Xs), flight_block(m, f)]).astype(np.float32)

@@ -6,7 +6,7 @@
 
 Opens the video in a local window. You mark where each spell starts; every frame from a mark
 to the next one takes that mark's label. Nothing from any model or from the tracking is shown,
-so the labels are an independent check (PLAN.md). The CSV goes under work/ (gitignored): hand
+so the labels are an independent check (git history: PLAN.md, the day-1 plan). The CSV goes under work/ (gitignored): hand
 labels are derived from the match video and must never be committed or given to an LLM.
 mtah/bench.py and analysis/r3_eval.py score every work/labels/val_*.csv.
 

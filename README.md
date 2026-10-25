@@ -5,39 +5,19 @@ for each of the 199,319 tactical-video frames of FC Barcelona vs Athletic Club, 
 `D`. Submissions are ranked on **spellF1** (whole possessions matched by temporal IoU). Deadline
 **17 Nov 2026**.
 
-The official challenge docs from Metrica's starter repository are kept as they were:
-[STARTER_README.md](STARTER_README.md), [CHALLENGE.md](CHALLENGE.md), [DATA.md](DATA.md),
-[EVALUATION.md](EVALUATION.md), [SUBMISSION.md](SUBMISSION.md), [RULES.md](RULES.md),
-[FAQ.md](FAQ.md).
+**Current submission: `final_v5`** (`uv run python run.py --name final_v5`, sha256
+`4089da237ca8780a…`). Its scores and how we got there: [docs/INVESTIGATION.md](docs/INVESTIGATION.md)
+§24.
 
-## Where we are
+## Documents
 
-| submission | public spellF1 | public macroF1 | bench* | `val_h2` (20 min 2nd half)** |
-|---|---|---|---|---|
-| `baseline_smooth50` (official floor; 0.2433 on the full match) | 0.326 | 0.621 | — | — |
-| `rules_v2` (hand-written rules) | 0.461 | 0.852 | — | 0.655 (collarMF1 0.883) |
-| `final_v1` | 0.700 | 0.898 | 0.656 | 0.558 (collarMF1 0.894) |
-| `final_v2`: final_v1 + dead ball before the 2nd-half kickoff | 0.700 | 0.898 | 0.656 | 0.577 (collarMF1 0.895) |
-| `final_v3`: final_v2 + rule labels voting in the decoder (w 0.25) | 0.653 | 0.904 | 0.632 | 0.627 (macroF1 0.873) |
-| `final_v4`: final_v3 + stoppage gate | 0.653 | 0.904 | 0.636 | 0.632 (macroF1 0.875) |
-| **`final_v5` (current submission)**: final_v2 decoder + stoppage gate | **0.723** | **0.910** | **0.661** | 0.593 (timing-biased, §20) |
-
-\* `bench` is the yardstick we choose on, not the public window: the mean spellF1 over 9 external
-matches noised to look like ours, and over our public window with the ball hidden the way the
-full match loses it. The public 5 minutes are the best-tracked part of the match, with only 17
-possessions. **Never pick a version because it scores better there.**
-\*\* `val_h2` (`analysis/r3_eval.py`, `INVESTIGATION.md` §16) scores four 5-minute 2nd-half windows
-(`30,000` frames, 57 live possessions) in `work/labels/val_h2_*.csv` (`0.558` fold ensemble, `0.577`
-full-fit `final_v2.csv`, `0.722` relaxed-IoU `spellF1`, `0.891` live `teamAcc`, `0.938` `deadF1`).
-`final_v3` was chosen on `val_h2` over the bench and public window; `final_v5` reverses that:
-the eye labels put possession changes where the rules do, while the real GT puts them a median
-1.6 s later, so `val_h2` spellF1 rewards rule timing (the rules alone score best there and worst
-on every real-GT yardstick; INVESTIGATION.md §20). `val_h2` is now used only for timing-free
-checks. Public columns are the delivered full-fit files; bench uses the fold models.
-
-**What we do next, and its status: [ROADMAP.md](ROADMAP.md)** (the source of truth for open work).
-How we got here, with every number reproducible: [INVESTIGATION.md](INVESTIGATION.md).
-External reviews and our verdicts on each point: [RECOMMENDATIONS_REVIEW.md](RECOMMENDATIONS_REVIEW.md).
+| | where | job |
+|---|---|---|
+| organiser | [challenge/](challenge/) | task, data, metric, submission, rules, FAQ; unchanged from Metrica's starter |
+| ours | [docs/ROADMAP.md](docs/ROADMAP.md) | **source of truth for open work**, decisions, dates |
+| ours | [docs/INVESTIGATION.md](docs/INVESTIGATION.md) | **source of truth for evidence**: every measured number and its script, plus the literature review |
+| ours | [docs/REVIEWS.md](docs/REVIEWS.md) | verdicts on outside advice |
+| ours | [Yamanalyst.md](Yamanalyst.md) | the technical document we submit (export to PDF) |
 
 ## Data rules (read first)
 
@@ -58,7 +38,7 @@ uv sync                      # behind a corporate TLS proxy: UV_SYSTEM_CERTS=1 u
 ```
 
 1. **Match data** (from the enrolment download link): unpack into `data/tactical/` and
-   `data/broadcast/`, as described in [DATA.md](DATA.md). Or point `MTAH_DATA_DIR` at it.
+   `data/broadcast/`, as described in [challenge/DATA.md](challenge/DATA.md). Or point `MTAH_DATA_DIR` at it.
 2. **Public external data**, used for training. It is about 2.6 GB: IDSSE (CC BY 4.0) and the
    Metrica sample games.
    ```bash
@@ -70,14 +50,14 @@ uv sync                      # behind a corporate TLS proxy: UV_SYSTEM_CERTS=1 u
 
 ```bash
 uv run python run.py                      # -> evaluation/results/final.csv, validated
-uv run python run.py --name final_v5      # the same, under another name
+uv run python run.py --name final_v5      # the same, under the submission's name
 uv run python evaluation/run_evaluation.py --no-detail     # public-window scoreboard
 ```
 
 `run.py` is deterministic: it reproduces `final_v5` byte for byte (sha256 `4089da237ca8780a…`).
 `final_v4` was `0bc6e8c0…`, `final_v3` `3b01921e…`, `final_v2` `59e7b27f…`.
 `final_v2` differs from `final_v1` (`34f6c958…`) only on the 2nd half's 2,934 pre-kickoff frames
-(INVESTIGATION.md §10).
+(docs/INVESTIGATION.md §10).
 The first run builds caches (about 30–60 min); later runs take about 11 min. Older methods are
 still available with `--method rules|fused_own|fused_ext`.
 
@@ -93,7 +73,8 @@ raw ATD ──► mtah/data.py      cache: players, ball, homography, camera cen
                               labels (mtah/external.py), noised to our tracker (mtah/noise.py),
                               plus mirrored and extra-noise copies
         ──► mtah/decode.py    3-state Viterbi: switch costs and a 1-s minimum dead ball
-                              (+ dead ball before the 2nd-half kickoff, mtah/kickoff.py)
+                              (+ dead ball before the 2nd-half kickoff, mtah/kickoff.py,
+                              + stoppage gate for short live blips between dead balls)
         ──► evaluation/results/final.csv
 ```
 
@@ -120,9 +101,9 @@ see `analysis/decoder_sweep.py` and `analysis/round2.py`. Differences under abou
 
 The tracker loses the ball on 41% of graded frames. The fine-tuned detector works (79% of top
 picks within 2 m on held-out frames), but merging its track into the current model **lowers** the
-bench (INVESTIGATION.md §9), and so does a better DP linker (§9.1), so the submission does not use
-it. A separate "video ball" channel trained with simulated video-like noise is ROADMAP.md R6, built
-only if the value-of-ball test (R2) says it can pay.
+bench (docs/INVESTIGATION.md §9), and so does a better DP linker (§9.1), so the submission does not use
+it. A separate "video ball" channel (docs/ROADMAP.md R6) was closed: even a perfect ball restored
+in the gaps adds only +0.005 to the bench (R2, §12).
 `mtah/video_ft.py` fine-tunes a small YOLO on our own video, using the ATD ball projected through
 the homography as automatic labels, then detects on the missing frames.
 
@@ -141,12 +122,13 @@ the homography as automatic labels, then detects on the missing frames.
 | path | what |
 |---|---|
 | `run.py` | the one command that writes the submission |
-| `mtah/` | the pipeline (table above) plus `bench.py`, `masking.py`, `score.py`, `report.py`, `kickoff.py` (measured, not used), `video*.py` |
-| `analysis/` | every experiment behind INVESTIGATION.md. Re-runnable; prints aggregates only |
+| `mtah/` | the pipeline (table above) plus `bench.py`, `masking.py`, `score.py`, `report.py`, `kickoff.py`, and measured-but-unused `video*.py`, `mbr.py`, `refiner.py` |
+| `analysis/` | every experiment behind docs/INVESTIGATION.md (`yardsticks.py` scores any decoder on every yardstick). Re-runnable; prints aggregates only |
 | `colab/` | GPU notebook |
 | `scripts/` | downloads (external data, model weights), Colab bundle |
 | `evaluation/` | the official scorer, validator and public ground truth (unchanged from the starter) |
-| `PLAN.md` | the first plan (historical) |
+| `challenge/` | the organiser's documents, unchanged |
+| `docs/` | our roadmap, evidence and review verdicts |
 
 ## Working on it as a team
 
@@ -154,4 +136,4 @@ the homography as automatic labels, then detects on the missing frames.
   the message when a result changes.
 - New experiments go in `analysis/`; promote to `mtah/` only what the submission uses.
 - Before submitting: `run.py` twice on a clean clone (identical sha), the validator,
-  [SUBMISSION.md](SUBMISSION.md), and making the repo public.
+  [challenge/SUBMISSION.md](challenge/SUBMISSION.md), and making the repo public.

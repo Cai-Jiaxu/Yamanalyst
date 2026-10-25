@@ -1,36 +1,25 @@
 # Roadmap: what we do next, and why
 
-**This file is the source of truth for open work.** Update its status column in the same commit
-as the result. Everything else has one job:
+**This file is the source of truth for open work and decisions.** Update its status column in the
+same commit as the result. Each document has one job and no other document repeats it:
 
 | doc | job |
 |---|---|
-| `ROADMAP.md` (this) | open items, their order, decision rules and status |
-| [INVESTIGATION.md](INVESTIGATION.md) | the evidence: every measured number and the script behind it |
-| [RECOMMENDATIONS_REVIEW.md](RECOMMENDATIONS_REVIEW.md) | verdicts on outside advice (Do / Test / Defer / No) |
-| [README.md](README.md) | how to run it and the current submission |
-| [PLAN.md](PLAN.md) | the day-1 plan, historical |
+| `docs/ROADMAP.md` (this) | open items, their order, decision rules, status, dates |
+| [docs/INVESTIGATION.md](INVESTIGATION.md) | the evidence: every measured number, the script behind it, and the literature |
+| [docs/REVIEWS.md](REVIEWS.md) | verdicts on outside advice (Do / Test / Defer / No) |
+| [README.md](../README.md) | how to run it; which file is the current submission |
+| [Yamanalyst.md](../Yamanalyst.md) | the technical document we submit (its numbers are copied from INVESTIGATION.md at the freeze) |
+| [challenge/](../challenge/) | the organiser's documents, unchanged |
 
 Last updated 2026-10-25.
 
 ## Where we stand
 
-**`final_v5`** (2026-10-25) = `final_v2` decoder + stoppage gate, no rule vote: bench **0.661** (ext 0.616,
-masked 0.706), public 0.723 on the delivered file. It reverses `final_v3`/`v4`: the eye-labelled
-`val_h2` rewards the rules' boundary timing, which the real GT puts 1.6 s later (INVESTIGATION.md §20);
-val_h2 is now a timing-free check only. Since then measured and not adopted: MBR decoding (§21),
-GRU/TCN temporal refiners (§22–23: ext +0.011–0.017, masked −0.02–0.03).
-Before: **`final_v4`** = `final_v3` + stoppage gate: public 0.653, val_h2 0.632.
-`final_v3` (2026-10-24): public spellF1 0.653, val_h2 0.627 (was 0.577), chosen on our own
-2nd half over the bench (0.632) on purpose (INVESTIGATION.md §17–18). Before it, `final_v2`:
-bench **0.656** (ext 0.617, masked 0.695), public spellF1 0.675 on the bench decoder
-(0.700 for the delivered file). It is `final_v1` plus dead ball before the 2nd-half kickoff. Remaining error on external matches, per 100 true possessions:
-missed 22, boundary drift 19, merges 11, spurious 3.6, splits 2.1; predicted/true 0.71.
-
-Closed since the last plan: video ball as a drop-in for the ATD ball (lowers the bench at every
-coverage, INVESTIGATION.md §9–9.1); R1 adopted (§10); R2 closed the video channel (§12); R4, R5,
-R7 and R8 measured and not adopted (§11, §13–15). **Modelling is on a plateau: what is left is
-validation (R3), the technical document (R9) and the submission checklist.**
+Submission **`final_v5`**: `final_v2` decoder + stoppage gate, no rule vote (INVESTIGATION.md §20,
+§24). It reverses `final_v3`/`v4`, which were chosen on eye labels that reward the rules' boundary
+timing. Since then measured and not adopted: MBR decoding (§21), GRU/TCN refiners (§22–23).
+The one large error left is short possessions; R17's touch-sequence features did not move it (§25).
 
 ## Dates
 
@@ -60,7 +49,7 @@ validation (R3), the technical document (R9) and the submission checklist.**
    The screen only removes clear losers; it never adopts anything, because it leaves out the
    mirrors, our biggest single gain (+0.039).
 
-## Process improvements (accepted from the fifth review, RECOMMENDATIONS_REVIEW.md)
+## Process improvements (accepted from the fifth review, REVIEWS.md)
 
 | # | item | status |
 |---|---|---|
@@ -87,16 +76,26 @@ model-suggested boundaries for labellers, and its unmeasured timing figures.
 | R10 | **Why the model drifts in the 2nd half** | val_h2 team accuracy 0.78–0.94 vs 0.958 public | hours | — | **done** (§18): errors happen with the ball visible and are confident; model and rules each win in different windows |
 | R11 | **Per-frame stacker** of model probabilities and rule evidence, fitted in-domain with leave-one-window-out CV over public + the 4 val windows (5 folds); a handful of parameters only (e.g. logistic on log P, rule vote, ball-near, on-ball distance margin) | §18: neither source dominates, so a per-frame choice beats any fixed blend | hours, decoder-level, no refit | must beat `final_v3` on every held-out window on average and not lose public by > 0.02 | **done**: stacker not adopted (public −0.08, ext −0.12); its stoppage gate adopted → **`final_v4`** (val_h2 0.632, possessions 286 → 278; INVESTIGATION.md §19) |
 | R13 | **Stoppage-blip gate**: live spell ≤ 4 s between dead balls while players walk → dead | §16: ATD tracks a returned ball in stoppages | minutes, post-decode | does no harm on any yardstick | **measured, awaiting adoption** (§19): on `final_v3` public +0.022, masked +0.008, ext/val unchanged |
-| R12 | Make the model trust a visible ball: an augmentation copy with milder ball/team noise where the ball is seen (our ATD is cleaner there than the simulation) | §18: model errs with the ball visible | one refit | val_h2 + ext | after R11 |
+| R12 | Make the model trust a visible ball (milder-noise augmentation where the ball is seen) | §18: model errs with the ball visible | one refit | val_h2 + ext | **closed**: its premise was the eye labels' timing (§20); mid-possession the model already matches the rules |
 | R14 | **Audit the yardsticks**: where do H↔A changes land on real GT vs eye labels? | §18–19 chose on val_h2 against every real-GT yardstick | hours, cached `P_R1` | — | **done → `final_v5`** (§20): rules 1.6 s early on real GT, 0–2 frames on eye labels; v2 decoder + gate +0.025 bench |
 | R15 | Segmental MBR decoding for expected spellF1 | Viterbi optimises path probability, not the metric | hours, decoder only | bench rule | **done, not adopted**: +0.001 (§21) |
 | R16 | Learned temporal refiner (GRU / TCN) over the trees' probabilities | MS-TCN / ASRF; Kaggle CMI sleep | ~1–2 h CPU per run | bench rule | **done, not adopted**: ext +0.011–0.017, masked −0.02–0.03, public −0.04–0.06; learns external label conventions (§22–23) |
-| R17 | Short-possession recall | 20–30% of true spells are < 2 s, recall ~0.19 (§20) | open | bench rule | open: the only large error mass left; any gain must come without spurious spells |
+| R17 | **Short-possession recall**: touch-sequence and kick features (`feats.flight_block`, `full_plus5`) | 20–30% of true spells are < 2 s, recall ~0.19 (§20) | screen, then one refit | rule 7 screen; then bench rule, judged also per duration bin and spurious/100 | **done, not adopted** (§25): screen +0.040, full fit +0.001 (ext +0.009, masked −0.007); < 2 s recall unchanged at 0.186 |
+| R18 | **Calibrate the eye labels** (team task, by a person, never an LLM): label the public window by eye without looking at the GT, compare with the real GT | decides what `val_h2` can still judge (§20) | ~1 person-hour | — | open |
 | R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **draft**: `Yamanalyst.md` (refresh numbers at the freeze; export to PDF, `*.pdf` is gitignored) |
 
 Not on the list, and why: Smart Tagging fusion, `is_metrica`, X on boundaries, EM prior,
-IDSSE relabel, boundary snapping, re-ranking video candidates, TCN refiner (defer). See
-RECOMMENDATIONS_REVIEW.md for each verdict.
+IDSSE relabel, boundary snapping, re-ranking video candidates (REVIEWS.md); ball-free deep
+possessor models such as PathCRF (reported 92.4% team accuracy without the ball, about where our
+shape model is, INVESTIGATION.md §0); more labelled matches (no ready source in our convention:
+PFF needs a personal sign-up, SkillCorner has no per-frame possession); duration priors (§11 and
+the sixth review: null).
+
+## Next steps (2026-10-25)
+
+1. R18: one person-hour, any team member.
+2. Freeze (14 Nov): refresh Yamanalyst.md's numbers from INVESTIGATION.md, export the PDF.
+3. 15 Nov: repo public, clean-clone `run.py` gives the README sha.
 
 ## Known issues and risks
 

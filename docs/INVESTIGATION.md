@@ -1,7 +1,56 @@
-# What the best possible solution looks like
+# Investigation: the evidence behind every decision
 
-The investigation that drives the build. Every number below was produced by a script in `analysis/`
-and can be re-run. Only aggregates were printed: no tracking rows left this machine.
+**The single source of truth for measured numbers.** Every number below was produced by a script
+in `analysis/` and can be re-run; only aggregates were printed, no tracking rows left this
+machine. Tags: **[measured]** run on our data, **[reported]** published by others and not
+reproduced, **[hypothesis]** untested. Open work and decisions: [ROADMAP.md](ROADMAP.md);
+verdicts on outside advice: [REVIEWS.md](REVIEWS.md); the submitted write-up:
+[../Yamanalyst.md](../Yamanalyst.md). Organiser documents are in [../challenge/](../challenge/).
+
+## 0. Prior work and competition precedents (2026-10-25 review)
+
+### 0.1 Direct precedents: possession and game state from tracking data
+
+| work | problem / method | data | reported result | what transfers to us |
+|---|---|---|---|---|
+| Borghesi, Costa, Morra, Lamberti, *Using Temporal Convolutional Networks to estimate ball possession in soccer games*, Expert Syst. Appl. 223 (2023) 119780, doi:10.1016/j.eswa.2023.119780 ([repo page](https://iris.polito.it/handle/11583/2976470)) | **Our exact 3-class task** (dead / home / away) from tracking. Per-object TCN embeddings, combined by permutation-invariant layers (sum, self-attention or 2-D conv); ternary vs two binary heads | professional tracking data (full text not reachable from here) | [reported] 86.2% possession accuracy (+7.3 over rule-based), 89.2% dead/alive (+33.2) | Confirms that learned models beat hand rules by a wide margin on dead/alive, which is also what we see (rules 0.36 ext vs model 0.62). Frame accuracy only: no segment metric, so it says nothing about spellF1-style over-segmentation |
+| Kim et al., *PathCRF: ball-free soccer event detection via possession path inference* (arXiv 2602.12080, 2026) ([paper](https://arxiv.org/html/2602.12080), [code](https://github.com/hyunsungkim-ds/pathcrf)) | possession as a path over a player graph; set-attention + temporal attention encoder; **dynamic CRF with masked illegal transitions, Viterbi decoding** | IDSSE / Sportec Open DFL, 7 matches (5 train / 1 val / 1 test), 5 fps, in-play only | [reported] frame-level **team possession accuracy 92.4% with no ball** (1 test match); event F1 75.7%; Viterbi on a non-CRF model already gives 73.1 vs 65.3 without | Same training data as ours. Our ball-free shape model sits at 88–93% team accuracy without the ball on our public window, so a much heavier ball-free network is unlikely to move team accuracy much. Their ablation supports what we already do: structured decoding is worth more than the encoder |
+| Kim et al., *Ball trajectory inference from multi-agent sports contexts using Set Transformer and hierarchical Bi-LSTM*, KDD 2023 ([arXiv 2306.08206](https://arxiv.org/abs/2306.08206), [code](https://github.com/pientist/ballradar)) | predict the possessing **player**, then regress the ball path conditioned on it | Metrica sample games + others | [reported] see paper; designed to fill missing ball | The possessor-first hierarchy is what our `ball_block` + shape features approximate. Imputing the ball would feed our rules a guessed ball; §9 / §12 showed even a *true* ball restored in gaps adds only +0.005 bench, so imputation is low value for us |
+| Vidal-Codina, Evans, El Fakir, Billingham, *Automatic event detection in football using tracking data*, Sports Engineering 25:18 (2022) ([arXiv 2202.00804](https://arxiv.org/abs/2202.00804)) | deterministic decision tree: possession step, then events from possession changes and laws of the game | several providers and tournaments, clean tracking with ball | [reported] > 90% detection in most event categories | A good blueprint for touch/possession rules **on clean tracking**. Our rules follow the same idea and score 0.61 spellF1 on clean external tracking but 0.37 once degraded to our noise (§6): with 41% ball missing, rule systems alone are not enough |
+| Link & Hoernig, *Individual ball possession in soccer*, PLOS ONE 12(7) e0179953 (2017); Hoernig et al. 2016 | Bayesian network / physics + ML for degrees of ball control | Bundesliga tracking | [reported] 80–92% precision/recall on clean data, ~4 points lower on uncorrected data | Supports CHALLENGE.md's "controlled possession" notion: a touch is not possession. Our GT measurements agree (§2) |
+| Bassek et al., IDSSE / Sportec Open DFL dataset, Sci. Data (2025), doi:10.1038/s41597-025-04505-y | 7 Bundesliga matches with synchronized tracking, events, per-frame `BallPossession` / `BallStatus` | — | — | Our main training set (7 of 9 matches). Its possession convention counts more brief touches (4.3/min vs 3.4/min in our GT, §6) |
+
+### 0.2 Transferable methods: temporal segmentation with an over-segmentation penalty
+
+| work | idea | evidence | relevance |
+|---|---|---|---|
+| Farha & Gall, *MS-TCN*, CVPR 2019 ([arXiv 1903.01945](https://arxiv.org/abs/1903.01945)); MS-TCN++ ([2006.09220](https://arxiv.org/abs/2006.09220)) | stacked dilated TCN stages, each refining the previous one's frame probabilities; truncated-MSE smoothing loss against flicker | [reported] state of the art on 50Salads / GTEA / Breakfast at the time, with segmental F1@{10,25,50}, a metric of the same family as spellF1 | Direct template for a **learned refiner on top of our tree probabilities** (tested, §22–23) |
+| Ishikawa et al., *ASRF*, WACV 2021 ([arXiv 2007.06866](https://arxiv.org/abs/2007.06866)) | frame classifier + boundary-regression branch; boundaries suppress over-segmentation | [reported] up to +16.1 segmental F1 | Our "boundary head" (`w_bound`) is this idea; measured ±0.001 on our bench (§8). Not repeated |
+| Segmental minimum-Bayes-risk decoding, Goel & Byrne, IEEE TSAP (2004) | choose the output that maximises the **expected task metric** under the posterior, stretch by stretch | [reported] consistent WER gains in ASR | Our metric is a segment F1 and Viterbi optimises path probability, not spellF1. Tested, §21 |
+| HSMM / explicit-duration models | duration distributions instead of geometric | textbook | Our minimum-dead dwell inside Viterbi was measured as no change (§11); not repeated |
+
+### 0.3 Kaggle and competitive precedents
+
+| competition | what won | what transfers | what does not |
+|---|---|---|---|
+| Child Mind Institute – Detect Sleep States (2023): per-step state segmentation of long accelerometer series, event AP with tolerances | [reported, secondary source: a competitor's summary deck] 1st place used a 1-D UNet + GRU; post-processing tuned to the metric added +0.02 private | Sequence heads over per-step features beat per-step GBDTs; **post-processing aligned with the metric matters as much as the model** | 100s of training series there vs 9 matches here; their labels were the same convention as the test |
+| DFL – Bundesliga Data Shootout (2022): event spotting (play / challenge / throw-in) from video | write-ups found were 6th place and below; video CNNs + temporal heads | — | Video-only, different target; our video ball channel was already measured and closed (§9–12) |
+| NFL Player Contact Detection (2023): contacts from tracking + video | [reported, secondary] GBDT on tracking features to filter, 3-D CNN on video, GBDT post-processing | Tracking-feature GBDTs are a strong base stage; a second stage over first-stage outputs is standard | Pairwise contact, not segment-level possession |
+
+**Common lesson** across these: (1) a strong per-step model, (2) a temporal stage, (3) decoding and
+post-processing tuned to the official metric on a validation set with the **same label convention
+as the test**. Point (3) turned out to be where our system had a methodological problem (§20).
+
+### 0.4 What the literature cannot answer
+
+No published work uses our setting: automatic uncorrected tracking with 41% ball loss, a
+segment-level IoU metric, a GT whose convention we only see for 17 possessions. Three questions
+need our own experiments:
+1. Which yardstick represents the private GT? (§20)
+2. Does a learned temporal stage beat a fixed-cost Viterbi on our features? (§21–23)
+3. Does decoding for expected spellF1 beat decoding for path probability? (§21–23)
+
+---
 
 ## 1. What the metric rewards (`analysis/ceiling.py`)
 
@@ -622,37 +671,6 @@ chosen on `val_h2` (§17). Delivered files: public spellF1 0.700 → 0.653 (macr
   11–29%, close to training's 40%. Recalibrating the noise model's dead-ball bias to the public
   window would have been wrong.
 
-## 19. R11 per-frame stacker, and the stoppage-blip gate (`analysis/r11_stack.py`)
-
-**Stacker**: multinomial logistic regression on 10 per-frame inputs (log P ×3, rule vote × ball
-near ×3, ball near, on-ball distance margin, ball seen, ball speed), fitted on the labelled frames
-of our match with leave-one-window-out CV over public + the 4 val windows; its output replaces P in
-the `final_v2` decoder. Ext is scored with the stacker fitted on all 5 windows, masked with one
-fitted on the 4 val windows only (no stacker sees the labels it is scored on).
-
-**Stop gate**: a live spell ≤ 100 frames with dead ball on both sides while the players walk
-(mean team pace < 1.3 m/s, 1 s smoothing) becomes dead ball (§16: the ATD tracking a returned
-ball during a stoppage). Pre-specified from §16, one setting, not tuned here.
-
-| config | bench | ext | masked | public | win 1 | win 2 | win 3 | win 4 | val avg |
-|---|---|---|---|---|---|---|---|---|---|
-| `final_v2` decoder | 0.656 | **0.617** | 0.695 | 0.675 | 0.594 | 0.533 | 0.717 | 0.450 | 0.573 |
-| `final_v3` (submitted) | 0.632 | 0.589 | 0.675 | 0.645 | 0.648 | 0.589 | 0.800 | 0.530 | 0.642 |
-| `final_v3` + stop gate | 0.636 | 0.589 | 0.683 | 0.667 | 0.648 | 0.589 | 0.800 | 0.530 | 0.642 |
-| `final_v2` + stop gate | **0.661** | 0.616 | **0.706** | **0.697** | 0.594 | 0.557 | 0.717 | 0.450 | 0.579 |
-| R11 stacker (w_shape 0.75; 1.0 is identical on val) | 0.505 | 0.469 | 0.541 | 0.565 | 0.662 | 0.452 | 0.848 | 0.722 | 0.671 |
-| R11 stacker + stop gate | 0.506 | 0.468 | 0.543 | 0.565 | 0.662 | 0.473 | 0.883 | 0.722 | **0.685** |
-
-- **R11 fails its decision rule**: held-out val average +0.029 over `final_v3`, but public −0.080
-  and window 2 −0.137. It wins where the rules already won (windows 3–4) and loses where the model
-  won (public, window 2): with 5 windows it learns a fixed lean towards the rules, not a per-frame
-  choice. Its collapse on ext/masked is expected (fitted on our match's conventions) and shows it
-  would not generalise. **Not adopted.**
-- **The stop gate never hurts**: on `final_v3` public +0.022, masked +0.008, ext and every val
-  window unchanged; on `final_v2` bench +0.005, public +0.022, masked +0.011, win 2 +0.024. On
-  `final_v3` the bench gain (+0.004) is just under rule 1's 0.005, so it qualifies on the R1-style
-  "does no harm + fixes a known error" basis (§16).
-
 ## 19. R11: per-frame stacker (not adopted) and the stoppage gate (`final_v4`, `analysis/r11_stack.py`)
 
 A multinomial logistic stacker (10 inputs: model log-probabilities, rule vote × ball near, ball
@@ -790,3 +808,52 @@ refiner sees the same single-model inputs it was trained on.
   (IDSSE counts brief touches, §6), so a stage that models label *sequences* picks up exactly what
   differs between them and our GT; the per-frame trees transfer better.
 - **Not adopted** (rule 1, two architectures, eight settings). `mtah/refiner.py` stays as a tool.
+
+## 24. `final_v5`, the delivered file (`analysis/score_files.py`)
+
+`mtah/final.py` `DECODER`: `use_rules` False, `stop_gate` 100, everything else as `final_v2`. Full
+fit on all 9 external matches, as delivered by `run.py`:
+
+| file | public spellF1 / macroF1 | public spells (true 17) | full-match possessions | val_h2 | valLo | valMid |
+|---|---|---|---|---|---|---|
+| `final_v2.csv` | 0.700 / 0.898 | 15 | 282 | 0.590 | 0.727 | 0.044 |
+| `final_v4.csv` | 0.653 / 0.904 | 13 | 278 | 0.633 | 0.782 | 0.043 |
+| **`final_v5.csv`** | **0.723 / 0.910** | 14 | 269 | 0.593 | 0.731 | 0.044 |
+
+Fold models (the bench): 0.661, ext 0.616, masked 0.706 (§20). Two runs of `run.py` give the same
+file byte for byte, sha256 `4089da237ca8780a…`; `evaluation/validate_submission.py` passes. The
+fold-to-full-fit check asked for by the sixth review holds: the full fit's public gain over
+`final_v4` (+0.070) is larger than the fold models' (+0.030).
+
+## 25. R17: touch-sequence and kick features for short possessions (`feats.flight_block`, `analysis/r17_screen.py`, `r17_full.py`)
+
+The other blocks see touches only through ±1–10 s smoothing, which averages a 1–2 s possession
+away. `flight_block` (14 columns) gives each frame the touch sequence around it: team and length
+of the last and next on-ball episode, the episode before the last and after the next (a second
+touch confirms control), frames since / until an episode, episodes per team within ±2 s, and kick
+events (ball speed jump > 4 m/s to > 6 m/s with a player within 2.5 m) with the kicker's team.
+`full_plus5` = `full_plus3` + `flight_block`. `final_v5` decoder throughout.
+
+**Fast screen** (rule 7: 9 base matches, no augmentation, 300 trees; ext recall at IoU 0.5 by true
+duration `<2 | 2–5 | 5–10 | >10 s`, spurious spells per 100 true):
+
+| screen | bench | ext | idsse | metrica | masked | public | valLo | ext recall by length | spurious |
+|---|---|---|---|---|---|---|---|---|---|
+| `full_plus3` | 0.573 | 0.590 | 0.578 | 0.629 | 0.557 | 0.625 | 0.739 | 0.156 / 0.456 / 0.709 / 0.845 | 4.6 |
+| `full_plus5` | **0.613** | 0.602 | 0.593 | 0.635 | **0.624** | 0.653 | 0.784 | 0.174 / 0.470 / 0.720 / 0.842 | **3.8** |
+
++0.040 bench, the largest screen gain so far, with short-possession recall up **and** spurious
+spells down. Passes the screen; the full refit decides (R8's +0.014 screen gain vanished there).
+
+**Full fit** (`final_v1` recipe: 600 trees, mirrored + extra-noise copies; `cache/P_R17.npz`):
+
+| | bench | ext | idsse | metrica | masked | public | valLo | ext recall by length | spurious |
+|---|---|---|---|---|---|---|---|---|---|
+| `final_v5` (`full_plus3`) | 0.661 | 0.616 | 0.607 | 0.648 | **0.706** | **0.697** | 0.742 | 0.186 / 0.482 / 0.740 / 0.861 | 3.6 |
+| `full_plus5` | 0.662 | **0.625** | 0.619 | 0.645 | 0.699 | 0.684 | 0.755 | 0.186 / 0.492 / 0.755 / 0.866 | **2.9** |
+
+**Not adopted** (rule 1: bench +0.001). Like R8 (§15), most of the screen gain is what the mirrored
+and extra-noise copies already supply. What is left is real but small: ext +0.009 (IDSSE +0.012),
+fewer spurious spells (3.6 → 2.9 per 100), recall up at 2–10 s, while our window loses a little
+(masked −0.007, public −0.013, one possession either way on 17). Possessions under 2 s stay at
+0.186: the touch sequence alone does not find them. `feats.flight_block` stays available.
