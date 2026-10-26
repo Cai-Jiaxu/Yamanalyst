@@ -1,0 +1,21 @@
+=== toy unit tests ===
+  T1 enable=False exact: PASS
+  T2 unconfirmed H->A blocked: PASS (blocked=3, accepted=0)
+  T3 confirmed H->A accepted: PASS (blocked=0, accepted=1)
+  T4 D resets latch: PASS
+  T5 long gap blocks switch: PASS (blocked=1, accepted=1)
+  T6 opposite-vector (no conf) blocked: PASS (blocked=3)
+  T7 single-frame conf accepted (edge): PASS
+  T8 D/X intervals preserved: PASS
+yardsticks ready in 24 s
+
+=== enable=False identity (real data) ===
+tl2_off                        bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+  bench 0.6612 ext 0.6163 masked 0.7061 public 0.6968/0.9098 val 0.5792
+
+=== enable=True true latch v2 ===
+tl2_on                         bench 0.303 | ext 0.168 (idsse 0.155 metrica 0.215) | masked 0.438 | public 0.512/0.881 n8 | val 0.482 valLo 0.653 valMid 0.060 valM 0.817
+  total blocked switches=432308, accepted=1386
+  bench 0.3030 ext 0.1679 masked 0.4380 public 0.5120/0.8805 val 0.4825
+  delta: bench -0.3582 ext -0.4483 masked -0.2680 public -0.1848 val -0.0967
+  elapsed 85.8s

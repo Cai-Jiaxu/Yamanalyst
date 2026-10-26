@@ -1,0 +1,31 @@
+[audio] decoding /Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/data/tactical/BAR-ATH_tactical.mp4 @ 16000 Hz mono ...
+[audio] decoded 127563093 samples, 7972.69 s
+[audio] summary:
+{
+  "video": "BAR-ATH_tactical.mp4",
+  "audio_duration_s": 7972.69,
+  "n_hops": 199317,
+  "fps": 25.0,
+  "sr": 16000,
+  "rms_db": {
+    "mean": -59.85,
+    "p05": -67.64,
+    "p50": -59.65,
+    "p95": -52.83,
+    "p99": -51.71
+  },
+  "whistle_db": {
+    "mean": -52.93,
+    "p50": -53.07,
+    "p95": -41.99,
+    "p99": -38.59
+  },
+  "crowd_db": {
+    "mean": -39.54,
+    "p50": -39.38,
+    "p95": -32.26
+  },
+  "whistle_peak_hops_est": 1421,
+  "whistle_peak_thr_db": -38.59
+}
+[audio] wrote cache/audio_tactical_features.npz

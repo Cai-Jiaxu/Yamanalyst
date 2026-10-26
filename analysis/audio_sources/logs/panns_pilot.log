@@ -1,0 +1,132 @@
+[decode] 417.40..477.40 s around 1H kickoff at 447.40 s
+[decode] 60.00 s audio, 0.6 s ffmpeg
+[model] loading AudioTagging Cnn14 on cpu
+Checkpoint path: /Users/bytedance/panns_data/Cnn14_mAP=0.431.pth
+/Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/research_sources_hack2027/pylibs/librosa/filters.py:48: UserWarning: A NumPy version >=1.23.5 and <2.3.0 is required for this version of SciPy (detected version 2.4.6)
+  import scipy
+/Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/research_sources_hack2027/pylibs/panns_inference/inference.py:55: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint = torch.load(checkpoint_path, map_location=self.device)
+Using CPU.
+[model] loaded in 20.9 s
+/Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/research_sources_hack2027/pylibs/panns_inference/pytorch_utils.py:11: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:212.)
+  x = torch.Tensor(x)
+[infer] 60 chunks x 1.0 s in 2.7 s (44 ms/chunk CPU)
+
+=== Per-class peak chunks (relative to kickoff) ===
+  Shout          idx=   8  chunk= 20 t_rel= -9.50 s  p=0.009
+  Shout          idx=   8  chunk= 30 t_rel= +0.50 s  p=0.006
+  Shout          idx=   8  chunk= 38 t_rel= +8.50 s  p=0.005
+  Whoop          idx=  10  chunk= 20 t_rel= -9.50 s  p=0.063
+  Whoop          idx=  10  chunk= 30 t_rel= +0.50 s  p=0.033
+  Whoop          idx=  10  chunk= 38 t_rel= +8.50 s  p=0.032
+  Yell           idx=  11  chunk= 20 t_rel= -9.50 s  p=0.015
+  Yell           idx=  11  chunk= 38 t_rel= +8.50 s  p=0.008
+  Yell           idx=  11  chunk= 30 t_rel= +0.50 s  p=0.006
+  Cheering       idx=  66  chunk= 20 t_rel= -9.50 s  p=0.080
+  Cheering       idx=  66  chunk= 30 t_rel= +0.50 s  p=0.052
+  Cheering       idx=  66  chunk= 38 t_rel= +8.50 s  p=0.050
+  Applause       idx=  67  chunk= 52 t_rel=+22.50 s  p=0.135
+  Applause       idx=  67  chunk= 30 t_rel= +0.50 s  p=0.104
+  Applause       idx=  67  chunk=  0 t_rel=-29.50 s  p=0.069
+  Crowd          idx=  69  chunk=  0 t_rel=-29.50 s  p=0.187
+  Crowd          idx=  69  chunk= 38 t_rel= +8.50 s  p=0.179
+  Crowd          idx=  69  chunk= 20 t_rel= -9.50 s  p=0.153
+  Hubbub         idx=  70  chunk=  0 t_rel=-29.50 s  p=0.019
+  Hubbub         idx=  70  chunk= 46 t_rel=+16.50 s  p=0.016
+  Hubbub         idx=  70  chunk= 38 t_rel= +8.50 s  p=0.011
+  Air_horn       idx= 318  chunk= 21 t_rel= -8.50 s  p=0.000
+  Air_horn       idx= 318  chunk= 39 t_rel= +9.50 s  p=0.000
+  Air_horn       idx= 318  chunk= 32 t_rel= +2.50 s  p=0.000
+  Buzzer         idx= 398  chunk= 28 t_rel= -1.50 s  p=0.003
+  Buzzer         idx= 398  chunk= 21 t_rel= -8.50 s  p=0.001
+  Buzzer         idx= 398  chunk= 35 t_rel= +5.50 s  p=0.001
+  Whistle        idx= 402  chunk= 28 t_rel= -1.50 s  p=0.002
+  Whistle        idx= 402  chunk= 20 t_rel= -9.50 s  p=0.001
+  Whistle        idx= 402  chunk= 21 t_rel= -8.50 s  p=0.001
+  Steam_whistle  idx= 403  chunk= 35 t_rel= +5.50 s  p=0.002
+  Steam_whistle  idx= 403  chunk= 39 t_rel= +9.50 s  p=0.001
+  Steam_whistle  idx= 403  chunk= 32 t_rel= +2.50 s  p=0.001
+
+=== Whistle (idx 402) per-chunk scores (relative to kickoff) ===
+  chunk=  0 t_rel=-29.50 s  p=0.000 
+  chunk=  1 t_rel=-28.50 s  p=0.000 
+  chunk=  2 t_rel=-27.50 s  p=0.000 
+  chunk=  3 t_rel=-26.50 s  p=0.000 
+  chunk=  4 t_rel=-25.50 s  p=0.000 
+  chunk=  5 t_rel=-24.50 s  p=0.000 
+  chunk=  6 t_rel=-23.50 s  p=0.000 
+  chunk=  7 t_rel=-22.50 s  p=0.000 
+  chunk=  8 t_rel=-21.50 s  p=0.000 
+  chunk=  9 t_rel=-20.50 s  p=0.000 
+  chunk= 10 t_rel=-19.50 s  p=0.000 
+  chunk= 11 t_rel=-18.50 s  p=0.000 
+  chunk= 12 t_rel=-17.50 s  p=0.000 
+  chunk= 13 t_rel=-16.50 s  p=0.000 
+  chunk= 14 t_rel=-15.50 s  p=0.000 
+  chunk= 15 t_rel=-14.50 s  p=0.000 
+  chunk= 16 t_rel=-13.50 s  p=0.001 
+  chunk= 17 t_rel=-12.50 s  p=0.000 
+  chunk= 18 t_rel=-11.50 s  p=0.000 
+  chunk= 19 t_rel=-10.50 s  p=0.001 
+  chunk= 20 t_rel= -9.50 s  p=0.001 
+  chunk= 21 t_rel= -8.50 s  p=0.001 
+  chunk= 22 t_rel= -7.50 s  p=0.001 
+  chunk= 23 t_rel= -6.50 s  p=0.001 
+  chunk= 24 t_rel= -5.50 s  p=0.001 
+  chunk= 25 t_rel= -4.50 s  p=0.000 
+  chunk= 26 t_rel= -3.50 s  p=0.001 
+  chunk= 27 t_rel= -2.50 s  p=0.001 
+  chunk= 28 t_rel= -1.50 s  p=0.002 
+  chunk= 29 t_rel= -0.50 s  p=0.000 
+  chunk= 30 t_rel= +0.50 s  p=0.001 
+  chunk= 31 t_rel= +1.50 s  p=0.001 
+  chunk= 32 t_rel= +2.50 s  p=0.001 
+  chunk= 33 t_rel= +3.50 s  p=0.000 
+  chunk= 34 t_rel= +4.50 s  p=0.001 
+  chunk= 35 t_rel= +5.50 s  p=0.001 
+  chunk= 36 t_rel= +6.50 s  p=0.000 
+  chunk= 37 t_rel= +7.50 s  p=0.000 
+  chunk= 38 t_rel= +8.50 s  p=0.001 
+  chunk= 39 t_rel= +9.50 s  p=0.001 
+  chunk= 40 t_rel=+10.50 s  p=0.001 
+  chunk= 41 t_rel=+11.50 s  p=0.000 
+  chunk= 42 t_rel=+12.50 s  p=0.001 
+  chunk= 43 t_rel=+13.50 s  p=0.000 
+  chunk= 44 t_rel=+14.50 s  p=0.000 
+  chunk= 45 t_rel=+15.50 s  p=0.000 
+  chunk= 46 t_rel=+16.50 s  p=0.000 
+  chunk= 47 t_rel=+17.50 s  p=0.000 
+  chunk= 48 t_rel=+18.50 s  p=0.000 
+  chunk= 49 t_rel=+19.50 s  p=0.000 
+  chunk= 50 t_rel=+20.50 s  p=0.001 
+  chunk= 51 t_rel=+21.50 s  p=0.000 
+  chunk= 52 t_rel=+22.50 s  p=0.000 
+  chunk= 53 t_rel=+23.50 s  p=0.000 
+  chunk= 54 t_rel=+24.50 s  p=0.000 
+  chunk= 55 t_rel=+25.50 s  p=0.000 
+  chunk= 56 t_rel=+26.50 s  p=0.000 
+  chunk= 57 t_rel=+27.50 s  p=0.000 
+  chunk= 58 t_rel=+28.50 s  p=0.000 
+  chunk= 59 t_rel=+29.50 s  p=0.000 
+
+[cache] /Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/research_sources_hack2027/cache/panns_kickoff_window.npz
+[total] 27.5 s
+{
+  "model": "Cnn14 (AudioSet, mAP=0.431)",
+  "weights_path": "/Users/bytedance/panns_data/Cnn14_mAP=0.431.pth",
+  "weights_bytes": 327428481,
+  "sample_rate": 32000,
+  "device": "cpu",
+  "decode_s": 0.6,
+  "load_s": 20.9,
+  "infer_s": 2.7,
+  "ms_per_chunk": 44.4,
+  "n_chunks": 60,
+  "window": [
+    417.4,
+    477.4
+  ],
+  "whistle_peak_chunk": 28,
+  "whistle_peak_prob": 0.0016232931520789862,
+  "whistle_peak_t_rel": -1.5
+}

@@ -1,0 +1,31 @@
+yardsticks ready in 27 s
+coord: waiting for PID 10096 to finish at 12:00:46
+coord: PID 10096 gone at 12:06:06; starting screen chain
+coord: waiting for PID 10096 to finish at 12:06:09
+coord: PID 10096 gone at 12:06:09; starting screen chain
+yardsticks ready in 23 s
+yardsticks ready in 24 s
+coord: screen chain exited 137 at 12:06:47
+screen full_plus3 (control)    bench 0.573 | ext 0.590 (idsse 0.578 metrica 0.629) | masked 0.557 | public 0.625/0.870 n15 | val 0.552 valLo 0.739 valMid 0.045 valM 0.836
+Traceback (most recent call last):
+  File "/Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/analysis/feat_screen.py", line 66, in <module>
+    rec0.update(by_len(y, Pb))
+                ^^^^^^^^^^^^^
+  File "/Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/analysis/feat_screen.py", line 45, in by_len
+    codes = __import__("mtah.score", fromlist=["label_codes"]).label_codes(v2g(c, P[k]))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'mtah.score' has no attribute 'label_codes'
+coord: screen chain exited 1 at 12:13:01
+yardsticks ready in 24 s
+screen full_plus3 (control)    bench 0.573 | ext 0.590 (idsse 0.578 metrica 0.629) | masked 0.557 | public 0.625/0.870 n15 | val 0.552 valLo 0.739 valMid 0.045 valM 0.836
+{"what": "control", "block": "full_plus3", "bench": 0.5731973013272602, "ext": 0.5895378484199505, "masked": 0.5568567542345698, "public": 0.625, "val": 0.5516750278706801, "valM": 0.8358589873514127, "rec_lt2s": 0.15639810426540285, "rec_2_5s": 0.45634563456345634, "rec_5_10s": 0.7085137085137085, "rec_gt10s": 0.8445714285714285, "spur_per_100": 4.6063202999464385, "t": "12:24:19"}
+screen +c_carrier_tightness    bench 0.591 | ext 0.593 (idsse 0.579 metrica 0.641) | masked 0.590 | public 0.632/0.871 n14 | val 0.550 valLo 0.748 valMid 0.040 valM 0.837
+{"what": "candidate", "block": "c_carrier_tightness", "secs": 573.5, "bench": 0.5914472221124374, "ext": 0.5931145614680733, "masked": 0.5897798827568015, "public": 0.632258064516129, "val": 0.5498767822566449, "valM": 0.83657816627092, "d_bench": 0.0182, "d_ext": 0.0036, "d_masked": 0.0329, "d_public": 0.0073, "rec_lt2s": 0.16682464454976303, "rec_2_5s": 0.45184518451845185, "rec_5_10s": 0.6984126984126984, "rec_gt10s": 0.8502857142857143, "spur_per_100": 4.204606320299947, "t": "12:33:58"}
+screen +c_centroid_compression bench 0.589 | ext 0.592 (idsse 0.582 metrica 0.627) | masked 0.587 | public 0.613/0.866 n15 | val 0.572 valLo 0.747 valMid 0.043 valM 0.837
+{"what": "candidate", "block": "c_centroid_compression", "secs": 503.4, "bench": 0.5892793308866964, "ext": 0.5917275340065029, "masked": 0.5868311277668897, "public": 0.6125, "val": 0.5715442890442891, "valM": 0.8369450933701593, "d_bench": 0.0161, "d_ext": 0.0022, "d_masked": 0.03, "d_public": -0.0125, "rec_lt2s": 0.16018957345971563, "rec_2_5s": 0.45094509450945097, "rec_5_10s": 0.7128427128427128, "rec_gt10s": 0.8457142857142858, "spur_per_100": 4.33851098018211, "t": "12:42:26"}
+screen +c_margin_dwell         bench 0.604 | ext 0.593 (idsse 0.582 metrica 0.631) | masked 0.614 | public 0.650/0.869 n15 | val 0.560 valLo 0.747 valMid 0.046 valM 0.835
+{"what": "candidate", "block": "c_margin_dwell", "secs": 504.3, "bench": 0.6037126190209133, "ext": 0.593295070262813, "masked": 0.6141301677790136, "public": 0.65, "val": 0.5602214452214452, "valM": 0.8349612694952139, "d_bench": 0.0305, "d_ext": 0.0038, "d_masked": 0.0573, "d_public": 0.025, "rec_lt2s": 0.16777251184834124, "rec_2_5s": 0.4464446444644464, "rec_5_10s": 0.7200577200577201, "rec_gt10s": 0.8457142857142858, "spur_per_100": 4.52597750401714, "t": "12:50:55"}
+screen +c_melee_uncertainty    bench 0.590 | ext 0.596 (idsse 0.581 metrica 0.648) | masked 0.584 | public 0.613/0.870 n15 | val 0.540 valLo 0.714 valMid 0.045 valM 0.840
+{"what": "candidate", "block": "c_melee_uncertainty", "secs": 553.1, "bench": 0.5897528270508529, "ext": 0.5957398582318358, "masked": 0.5837657958698699, "public": 0.6125, "val": 0.5399358974358974, "valM": 0.8402212278297515, "d_bench": 0.0166, "d_ext": 0.0062, "d_masked": 0.0269, "d_public": -0.0125, "rec_lt2s": 0.16682464454976303, "rec_2_5s": 0.45364536453645365, "rec_5_10s": 0.7070707070707071, "rec_gt10s": 0.848, "spur_per_100": 4.151044456347081, "t": "13:00:13"}
+screen +c_ballfree_cluster     bench 0.591 | ext 0.595 (idsse 0.584 metrica 0.637) | masked 0.586 | public 0.613/0.871 n15 | val 0.530 valLo 0.716 valMid 0.052 valM 0.827
+{"what": "candidate", "block": "c_ballfree_cluster", "secs": 597.4, "bench": 0.5908796070418301, "ext": 0.5954656388810542, "masked": 0.5862935752026059, "public": 0.6125, "val": 0.5303114478114478, "valM": 0.8266201630642178, "d_bench": 0.0177, "d_ext": 0.0059, "d_masked": 0.0294, "d_public": -0.0125, "rec_lt2s": 0.16872037914691942, "rec_2_5s": 0.46264626462646263, "rec_5_10s": 0.7215007215007215, "rec_gt10s": 0.8434285714285714, "spur_per_100": 4.284949116229245, "t": "13:10:15"}

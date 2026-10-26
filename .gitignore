@@ -70,3 +70,21 @@ work/
 external/
 models/
 colab_upload/
+
+# -- research workspaces (added 2026-10-26, see docs/CLEANUP_REPORT.md) -----------------------
+# Local archive of superseded / duplicate material. Reversible; never committed.
+_archive/
+# Any CSV under analysis/ would be a full-match label file (a submission) -- never commit one.
+analysis/**/*.csv
+# Match-derived arrays and isolated packages of the audio workspace.
+analysis/audio_sources/cache/
+analysis/audio_sources/pylibs/
+analysis/audio_sources/dist/
+# Evaluator outputs copied into experiment folders.
+analysis/**/score_out/reports/
+*.npz
+*.joblib
+*.tgz
+*.zip
+# YOLO prediction dumps.
+runs/

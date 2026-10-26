@@ -1,0 +1,40 @@
+{
+  "bench_spellF1": 0.6611595515410369,
+  "cache_P": "cache/P_R1.npz",
+  "decoder": {
+    "cost_dead": 12.0,
+    "cost_team": 12.0,
+    "kickoff": "half",
+    "min_dead": 25,
+    "stop_gate": 100,
+    "use_rules": false,
+    "w_bound": 0.0,
+    "w_shape": 0.75
+  },
+  "elapsed_s": 39.9,
+  "ext_macroF1": 0.8916817748622391,
+  "ext_spellF1": 0.6162642272941614,
+  "featfn": "full_plus3",
+  "idsse_spellF1": 0.6072732289032263,
+  "masked_macroF1": 0.9158032116674405,
+  "masked_sd_spellF1": 0.023589188599760617,
+  "masked_spellF1": 0.7060548757879124,
+  "metrica_spellF1": 0.6477327216624341,
+  "model": {
+    "max_iter": 600
+  },
+  "pred_to_true_ratio": 0.707,
+  "public_macroF1": 0.9098282105426794,
+  "public_spellF1": 0.696774193548387,
+  "seed": 0,
+  "taxonomy_ext_per100": {
+    "drift": 19.36,
+    "merge": 10.61,
+    "missed": 22.31,
+    "split": 2.04,
+    "spurious": 3.62
+  },
+  "val_macroF1": 0.8631466038607333,
+  "val_possessions": 57,
+  "val_spellF1": 0.5627118644067796
+}

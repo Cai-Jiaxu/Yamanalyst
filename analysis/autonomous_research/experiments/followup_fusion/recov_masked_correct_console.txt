@@ -1,0 +1,3 @@
+yardsticks ready in 26 s
+seed0: recov 85/4523 | diff 0 pdiff 0.0764 | 0.7310/0.8945 -> 0.7310/0.8945
+seed1: recov 0/4366 | diff 0 pdiff 0.0000 | 0.6897/0.9273 -> 0.6897/0.9273

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Possession classification for tactical match frames</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%231f5c8c'/%3E%3C/svg%3E">
+<style>
+:root{--ink:#1a1d22;--mut:#5b6470;--line:#e3e6ea;--bg:#fbfbfa;--card:#fff;--acc:#1f5c8c;--warn:#9a3b2e;--ok:#2f6b3a;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 22px 80px;}
+h1{font-size:25px;margin:0 0 4px;}
+h2{font-size:18px;margin:34px 0 10px;border-bottom:2px solid var(--line);padding-bottom:6px;}
+h3{font-size:14.5px;margin:16px 0 6px;}
+.sub{color:var(--mut);font-size:13px;margin-bottom:18px;}
+.banner{background:#eef4ef;border:1px solid #cfe0d2;border-left:5px solid var(--ok);padding:12px 16px;border-radius:6px;margin:16px 0;}
+.banner b{color:var(--ok);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:12px 0;overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:460px;}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top;}
+th{background:#f2f4f6;}
+.num{font-variant-numeric:tabular-nums;text-align:right;}
+.down{color:var(--warn);}.flat{color:var(--mut);}.up{color:var(--ok);}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:#eef2f5;color:var(--acc);}
+.pill.bad{background:#fbeae8;color:var(--warn);}.pill.pend{background:#fdf6e0;color:#8a6d1a;}.pill.ok{background:#e7f0e9;color:var(--ok);}
+ul{margin:6px 0 6px 20px;padding:0;}li{margin:3px 0;}
+a{color:var(--acc);}code{background:#f1f3f5;padding:1px 5px;border-radius:4px;font-size:12.5px;}
+#chart{width:100%;height:340px;}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;}
+.flow .step{background:#eef2f5;border:1px solid #d5dde3;border-radius:6px;padding:6px 10px;}
+.flow .arr{color:var(--mut);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Possession classification for tactical match frames</h1>
+<div class="sub">MTAH 2027 technical report. Aggregate metrics only. No match video or frame-level data is included.</div>
+
+<div class="banner">
+<b>Result.</b> The shipped system <b>final_v5</b> scores public spellF1 <b>0.7226</b> and macroF1
+<b>0.9098</b>. The extension work summarized here tested several further decoder and training ideas.
+None earned promotion. DoG dev bench +0.006 but full public 0.6857 vs 0.7226.
+</div>
+
+<h2>1. What the system does</h2>
+<div class="card">
+<div class="flow">
+<span class="step">noised external tracking</span><span class="arr">&rarr;</span>
+<span class="step">frame features (shape, distance, ball)</span><span class="arr">&rarr;</span>
+<span class="step">gradient-boosted classifier</span><span class="arr">&rarr;</span>
+<span class="step">Viterbi temporal decoder</span><span class="arr">&rarr;</span>
+<span class="step">possession spells</span>
+</div>
+<p style="margin-top:10px">Each of 199,319 tactical frames is assigned home, away, dead ball, or abstain.
+The ranking metric is spellF1, a temporal IoU over predicted possessions. The classifier is trained on nine
+external matches with event-derived labels provided by the source dataset, degraded to the tactical-view noise model, with left-right and home-away
+mirrors and three extra noise draws. A fixed-cost Viterbi decoder enforces team-switch and dead-ball costs,
+a minimum dead-ball length, a half kickoff reset, and a stoppage gate.</p>
+</div>
+
+<h2>2. Production scores</h2>
+<div class="card">
+<table>
+<tr><th>yardstick</th><th class="num">value</th><th>meaning</th></tr>
+<tr><td>public spellF1 (official scorer)</td><td class="num">0.7226</td><td>the graded 5-minute public window, full-fit model</td></tr>
+<tr><td>public macroF1 (official scorer)</td><td class="num">0.9098</td><td>mean per-class F1 over H, A, D (X excluded)</td></tr>
+<tr><td>development bench</td><td class="num">0.6612</td><td>mean over held-out external matches and ball-mask seeds; used during development</td></tr>
+<tr><td>external held-out</td><td class="num">0.6163</td><td>nine external matches, two datasets</td></tr>
+<tr><td>ball-mask development</td><td class="num">0.7061</td><td>the same 17 public possessions re-masked under 16 seeds</td></tr>
+</table>
+<p class="sub" style="font-size:12px">The pipeline matured from an early smooth-50 starter (public spellF1 0.3256, macroF1 0.6207)
+to the strongest smooth-125 starter (public spellF1 0.4242), then to the current 0.7226. The historical
+gain over the smooth-50 starter is +0.3970. That gain is already captured in final_v5. This cycle adds
+no further improvement.</p>
+</div>
+
+<h2>3. Ideas tested this cycle (development bench, not public leaderboard)</h2>
+<div class="card">
+<svg width="100%" height="320" viewBox="0 0 600 320">
+<text x="300" y="18" text-anchor="middle" font-size="12">dev bench spellF1 by arm</text>
+<text x="100" y="50" font-size="11">baseline</text>
+<rect x="180" y="42" width="330" height="14" fill="#2f6b3a"/>
+<text x="520" y="53" font-size="11">0.661</text>
+<text x="100" y="78" font-size="11">smoother</text>
+<rect x="180" y="70" width="316" height="14" fill="#9a3b2e"/>
+<text x="520" y="81" font-size="11">0.633</text>
+<text x="100" y="106" font-size="11">semi-Markov</text>
+<rect x="180" y="98" width="329" height="14" fill="#c98a3a"/>
+<text x="520" y="109" font-size="11">0.657</text>
+<text x="100" y="134" font-size="11">E1 reweight</text>
+<rect x="180" y="126" width="329" height="14" fill="#9a3b2e"/>
+<text x="520" y="137" font-size="11">0.658</text>
+<text x="100" y="162" font-size="11">DoG</text>
+<rect x="180" y="154" width="334" height="14" fill="#2f6b3a"/>
+<text x="520" y="165" font-size="11">0.667</text>
+<text x="100" y="190" font-size="11">typed head</text>
+<rect x="180" y="182" width="329" height="14" fill="#9a3b2e"/>
+<text x="520" y="193" font-size="11">0.657</text>
+<text x="100" y="218" font-size="11">phys228</text>
+<rect x="180" y="210" width="329" height="14" fill="#9a3b2e"/>
+<text x="520" y="221" font-size="11">0.658</text>
+<text x="100" y="246" font-size="11">true physical</text>
+<rect x="180" y="238" width="152" height="14" fill="#9a3b2e"/>
+<text x="380" y="249" font-size="11">0.303</text>
+</svg>
+</div>
+<div class="card">
+<table>
+<tr><th>experiment</th><th class="num">bench</th><th class="num">vs baseline</th><th>outcome</th></tr>
+<tr><td>shipped baseline</td><td class="num">0.6612</td><td class="flat">reference</td><td><span class="pill ok">shipped</span></td></tr>
+<tr><td>geometric evidence smoother</td><td class="num">0.633</td><td class="down">-0.028</td><td><span class="pill bad">worse</span></td></tr>
+<tr><td>semi-Markov duration decoder</td><td class="num">0.657</td><td class="down">-0.004</td><td><span class="pill bad">not adopted</span></td></tr>
+<tr><td>duel-conditioned switch cost</td><td class="num">0.660</td><td class="flat">-0.001</td><td><span class="pill bad">flat</span></td></tr>
+<tr><td>contested-duel reweighting (full)</td><td class="num">0.658</td><td class="down">-0.003</td><td><span class="pill bad">negative</span></td></tr>
+<tr><td>DoG logit sharpening</td><td class="num">0.667</td><td class="up">+0.006</td><td><span class="pill bad">public 0.686</span></td></tr>
+<tr><td>typed transition head</td><td class="num">0.657</td><td class="down">-0.004</td><td><span class="pill bad">rejected</span></td></tr>
+<tr><td>phys228 transition head</td><td class="num">0.658</td><td class="down">-0.004</td><td><span class="pill bad">rejected</span></td></tr>
+<tr><td>true physical latch v2</td><td class="num">0.303</td><td class="down">-0.358</td><td><span class="pill bad">strong negative</span></td></tr>
+</table>
+<p>True physical latch v2: vector ball-player relative velocity, same-carrier continuity, D/X preserved. Bench 0.3030, ext 0.1679, masked 0.4380, public fold 0.5120 / 0.8805. Strong negative, not promoted.</p>
+<p>Full public comparison: DoG 0.6857 / 0.9049 vs baseline 0.7226 / 0.9098 (down). Typed head bench 0.6573, ext 0.6220, masked 0.6926. Phys228 bench 0.6577, ext 0.6220, masked 0.6934. The 0.90 aspiration was not met.</p>
+<p class="sub" style="font-size:12px">The 0.005 adoption margin is a development heuristic, not a significance test.</p>
+<h3>Fresh-match holdout (separate protocol, not on dev bench)</h3>
+<table>
+<tr><th>condition</th><th class="num">baseline spellF1</th><th class="num">E1 spellF1</th><th class="num">baseline macroF1</th><th class="num">E1 macroF1</th></tr>
+<tr><td>clean</td><td class="num">0.6128</td><td class="num">0.6128</td><td class="num">0.8764</td><td class="num">0.8770</td></tr>
+<tr><td>stress noise</td><td class="num">0.5997</td><td class="num">0.5972</td><td class="num">0.8690</td><td class="num">0.8699</td></tr>
+</table>
+<p class="sub" style="font-size:12px">One Metrica match, frozen decoder, no retune. Descriptive only, no confidence interval.</p>
+</div>
+
+<h2>4. Data and labels</h2>
+<div class="card">
+<ul>
+<li>Training uses event-derived labels from nine external matches. Whether their possession convention differs from the target task is an open hypothesis.</li>
+<li>The public 17 possessions and the ball-mask yardstick are never used to train the model. They are reported after each run. Selecting ideas against them is development selection, not independent validation.</li>
+<li>A third Metrica sample match was used as a one-time external holdout. E1 and the baseline tied on spellF1 (0.6128), with a hair of macroF1 in E1's favour. Descriptive only, no confidence interval. It shares the Metrica label convention and is not the full fixture ground truth.</li>
+<li>No hand-labelled frames from the target match are created or used. The system abstains on pre-match, halftime and post-whistle frames.</li>
+</ul>
+</div>
+
+<h2>5. Literature: what transferred and what did not</h2>
+<div class="card">
+<table>
+<tr><th>family</th><th>example source</th><th>transfer evidence</th></tr>
+<tr><td>1 direct football</td><td>Bauer and Anzer 2021 counterpressing detection</td><td>turnover-regime feature design (tight marking, defence compression) noted; no labels reused</td></tr>
+<tr><td>2 open source</td><td>Socceraction VAEP, Metrica pitch control</td><td>pitch-control arrival-time model already in our features and measured; player_possession_time is an event counter, not geometry</td></tr>
+<tr><td>3 sequence academic</td><td>HSMM duration priors; boundary detection</td><td>HSMM tested at -0.004 bench, not adopted</td></tr>
+<tr><td>4 competition</td><td>SHL challenge phase work</td><td>Transfer to missing-modality tasks; no winner numerical claim. Renner GNN-LSTM (4.6 macro on 7-class, 203 matches) is academic, not this competition.</td></tr>
+<tr><td>5 weak label / integrity</td><td>Confident Learning, Snorkel, BBSE</td><td>rule features already used; label-error and label-shift ideas not adopted, mismatch looks definitional</td></tr>
+</table>
+<p class="sub" style="font-size:12px">References:
+<a href="https://link.springer.com/content/pdf/10.1007%2Fs10618-021-00763-7.pdf">Bauer and Anzer 2021</a>;
+<a href="https://raw.githubusercontent.com/ML-KULeuven/socceraction/master/socceraction/vaep/features.py">Socceraction</a>;
+<a href="http://www.shl-dataset.org/publications/">SHL challenge</a>;
+<a href="https://arxiv.org/abs/2610.11571">Renner GNN-LSTM</a>;
+<a href="https://arxiv.org/abs/1911.00068">Confident Learning</a>;
+<a href="https://arxiv.org/abs/1605.07720">Snorkel</a>;
+<a href="https://arxiv.org/abs/1802.03916">BBSE</a>.</p>
+</div>
+
+<h2>6. Assumptions and limitations</h2>
+<div class="card">
+<ul>
+<li>Public labels are 17 possessions. No confidence interval or statistical significance established; all yardsticks reused are development.</li>
+<li>Nine external matches span two datasets. The fresh Metrica holdout is limited to one match and the same label convention.</li>
+<li>The ball is missing on about 41 percent of graded frames; ball reconstruction was measured and adds little.</li>
+<li>Repeated development use of the same yardsticks biases small upward moves. The shipped numbers are the measured ones, not a private-match estimate.</li>
+</ul>
+</div>
+
+<h2>7. Reproduction</h2>
+<div class="card">
+<p>The shipped model is deterministic. The submission final_v5 has sha256
+<code>4089da23...1c8a</code>, 199,319 rows. The official scorer gives spellF1 0.7226 and macroF1 0.9098
+over 17 graded possessions. No cloud service or external weight is used at inference.</p>
+<p>Reproduce with the project venv:</p>
+<p><code>.venv/bin/python evaluation/run_evaluation.py --results evaluation/results --gt public</code><br>
+The scorer reads a directory of submissions and writes a scoreboard.</p>
+<p>Stopping rationale: research resumed to test actual player-ball control. The fixed tracked-motion latch
+passed 8 identity/state tests but scored dev bench 0.3030 vs 0.6612 and public fold 0.5120/0.8805 vs
+0.6968/0.9098. Goal-conditioned prior cannot be isolated from current tags: no explicit scored-goal
+event, outcome, team, or clock. Formation mode all was already tested. No candidate earned promotion.
+Paused after this additional controlled test under limited independent labels and diminishing returns.
+The 0.90 aspiration is unmet; the problem is not solved. Soft uncertainty-aware latch and larger
+independent labels remain hypotheses.</p>
+</div>
+
+<div class="sub">MTAH 2027. Development results shown; the public score is the official scorer on the graded window.</div>
+</div>
+</body>
+</html>

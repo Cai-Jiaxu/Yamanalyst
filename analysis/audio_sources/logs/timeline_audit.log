@@ -1,0 +1,28 @@
+=== BAR-ATH_tactical.mp4 ===
+-- trak #0 @5216210798 size=3687929
+   elst entries=1
+     [0] segment_duration=7972694 media_time=0 rate=1.0000
+   mdhd timescale=48000 duration=382689280 -> 7972.6933s
+   hdlr=b'soun'
+   stsz uniform_size=373720 n_samples=590
+-- trak #1 @5219898727 size=2408391
+   elst entries=1
+     [0] segment_duration=7972760 media_time=0 rate=1.0000
+   mdhd timescale=25000 duration=199319000 -> 7972.7600s
+   hdlr=b'vide'
+   stsz uniform_size=199319 n_samples=155382
+=== BAR-ATH_broadcast.mp4 ===
+-- trak #0 @140 size=976597
+   elst entries=1
+     [0] segment_duration=592153200 media_time=0 rate=1.0000
+   mdhd timescale=25000 duration=164487000 -> 6579.4800s
+   hdlr=b'vide'
+   hdlr=b'alis'
+   stsz uniform_size=164487 n_samples=542226
+-- trak #1 @976737 size=1464482
+   elst entries=1
+     [0] segment_duration=592153200 media_time=0 rate=1.0000
+   mdhd timescale=48000 duration=315816960 -> 6579.5200s
+   hdlr=b'soun'
+   hdlr=b'alis'
+   stsz uniform_size=308415 n_samples=637

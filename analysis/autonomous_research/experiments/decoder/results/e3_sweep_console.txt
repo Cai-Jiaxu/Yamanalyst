@@ -1,0 +1,12 @@
+yardsticks ready in 25 s
+baseline final_v5              bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+
+=== E3: extra H<->A switch cost during contested duels (>=1H & >=1A within 2 m) ===
+E3 extra_team=+1.0             bench 0.661 | ext 0.616 (idsse 0.606 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+    -> bench -0.0004 | ext -0.0007 | masked +0.0000 | public +0.0000 | val +0.0000
+E3 extra_team=+2.0             bench 0.661 | ext 0.615 (idsse 0.606 metrica 0.647) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+    -> bench -0.0006 | ext -0.0011 | masked +0.0000 | public +0.0000 | val +0.0000
+E3 extra_team=+4.0             bench 0.660 | ext 0.614 (idsse 0.605 metrica 0.647) | masked 0.706 | public 0.697/0.910 n14 | val 0.590 valLo 0.752 valMid 0.041 valM 0.842
+    -> bench -0.0011 | ext -0.0022 | masked +0.0000 | public +0.0000 | val +0.0112
+E3 extra_team=+8.0             bench 0.660 | ext 0.614 (idsse 0.605 metrica 0.648) | masked 0.706 | public 0.697/0.909 n14 | val 0.590 valLo 0.752 valMid 0.041 valM 0.842
+    -> bench -0.0010 | ext -0.0020 | masked +0.0000 | public +0.0000 | val +0.0112

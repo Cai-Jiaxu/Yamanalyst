@@ -1,0 +1,7 @@
+yardsticks ready in 27 s
+=== projected out-ball prior (our match only) ===
+  w=0.0  thr=0.5: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9098 | val sp 0.5792/mf 0.8411
+  w=2.0  thr=0.5: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9131 | val sp 0.5692/mf 0.8415
+  w=4.0  thr=0.5: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9129 | val sp 0.5692/mf 0.8417
+  w=8.0  thr=0.5: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9129 | val sp 0.5561/mf 0.8403
+  w=4.0  thr=1.0: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9129 | val sp 0.5692/mf 0.8417

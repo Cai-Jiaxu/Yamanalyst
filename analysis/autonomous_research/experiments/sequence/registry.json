@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-25",
+  "cache": "P_R1.npz (exact v5 fold probabilities, provenance preserved)",
+  "scorer": "analysis.yardsticks.Yard (official spellF1)",
+  "priors": {
+    "geometric_hmm_hazards_tested": [0.04, 0.02, 0.01, 0.005, 0.0025],
+    "semimarkov": {
+      "alive_mean_frames": 500.0,
+      "dead_mean_frames": 125.0,
+      "min_run_frames": 5,
+      "cost_team": 12.0,
+      "cost_dead": 12.0,
+      "arms": ["sum", "mean"],
+      "note": "L_MAX connectivity bound removed after debugging; candidate gaps up to 1282 frames > 750 broke the Viterbi chain"
+    }
+  },
+  "results": {
+    "baseline_v2g": {"bench": 0.661, "ext": 0.616, "masked": 0.706, "public": 0.697, "public_macro": 0.910, "public_spells": 14, "val": 0.579},
+    "geometric_hmm": {
+      "h=1/25": {"bench": 0.628, "ext": 0.602, "masked": 0.654, "public_spells": 17},
+      "h=1/50": {"bench": 0.632, "ext": 0.601, "masked": 0.663, "public_spells": 17},
+      "h=1/100": {"bench": 0.631, "ext": 0.599, "masked": 0.663, "public_spells": 17},
+      "h=1/200": {"bench": 0.629, "ext": 0.597, "masked": 0.662, "public_spells": 17},
+      "h=1/400": {"bench": 0.633, "ext": 0.595, "masked": 0.671, "public_spells": 17}
+    },
+    "semimarkov_sum": {"bench": 0.657, "ext": 0.614, "masked": 0.699, "public": 0.697, "public_spells": 14, "val": 0.590, "note": "regular endpoints every 750 frames + argmax changes; fixed generic duration priors"},
+    "semimarkov_mean": {"bench": 0.000, "ext": 0.000, "masked": 0.000, "public_spells": 1, "note": "true length-normalized arm collapses (length signal removed; -12 switch cost vs per-frame mean ~0.3). Discarded."}
+  },
+  "math_verification": {
+    "geometric_hmm_is_not_bocpd": true,
+    "smoother_name": "recursive categorical-prior / geometric evidence smoother",
+    "note": "recursion q_t=normalize((1-h)q_{t-1}P_t+h*prior*P_t) is a 3-state HMM with T[i,i]=1-h; no run-length posterior. Confirmed by independent verifier.",
+    "semimarkov_tests": "T1 blocks PASS, T2 Viterbi equivalence 1.0 PASS, T3 >L_MAX block PASS, T4 multi-switch PASS.",
+    "bug_found": "Invalid run (bench 0.000) preserved as failed implementation: L_MAX=750 pruned candidate pairs; natural argmax runs up to 1282 frames broke Viterbi chain; terminal dp -1e9 unreachable; backpointer (0,0) uninitialized produced one all-H segment. Fix: regular endpoints every 750 frames union argmax changes; reachability and backpointer-progress assertions added."
+  },
+  "script_hashes_sha256": {
+    "bocpd_smooth.py": "6d2598261474554658daf36cc7630985b8203dfa063f9575dbd49087a0eb867d",
+    "bocpd_sweep.py": "73b4fd443cc85a4715907dea0ff6a1779e4624e62986b874b48f2d3e4d0c96c6",
+    "test_semimarkov.py": "regenerated",
+    "semimarkov_v2.py": "regenerated"
+  },
+  "commands": [
+    ".venv/bin/python analysis/autonomous_research/experiments/sequence/bocpd_smooth.py",
+    ".venv/bin/python analysis/autonomous_research/experiments/sequence/bocpd_sweep.py",
+    ".venv/bin/python analysis/autonomous_research/experiments/sequence/test_semimarkov.py",
+    ".venv/bin/python analysis/autonomous_research/experiments/sequence/semimarkov_v2.py"
+  ],
+  "verdict": "Recursive categorical-prior smoother negative (bench -0.028 to -0.033). Semi-Markov SUM corrected: bench 0.657 (-0.004 vs baseline), val 0.590 (+0.011). MEAN true-normalized arm collapses (length signal removed). Does not meet +0.005 bench gate; not promoted. CPU-only."
+}

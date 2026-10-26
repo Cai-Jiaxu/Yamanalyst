@@ -1,0 +1,8 @@
+=== fusion: replay-filtered broadcast fill as decoder prior ===
+  alignment: 647 confident, 270 after replay-jump filter (jump>3)
+  replay-filtered fill: 2.3% of graded missing frames would be filled -> missing 40.7% -> 39.7%
+yardsticks ready in 25 s
+  w=0.0: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9098 | val sp 0.5792/mf 0.8411
+  w=1.0: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9098 | val sp 0.5792/mf 0.8411
+  w=2.0: bench 0.6612 ext 0.6163 masked 0.7061 | public sp 0.6968/mf 0.9098 | val sp 0.5792/mf 0.8411
+  w=4.0: bench 0.6638 ext 0.6163 masked 0.7113 | public sp 0.6968/mf 0.9098 | val sp 0.5792/mf 0.8411

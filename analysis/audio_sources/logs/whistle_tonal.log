@@ -1,0 +1,19 @@
+[tonal] decoded 127563093 samples in 13.5s
+[tonal] STFT features: 797262 hops in 16.6s
+[tonal] summary:
+{
+  "n_frames": 199315,
+  "decode_s": 13.5,
+  "feat_s": 16.6,
+  "total_s": 30.5,
+  "conc_p50": 0.108,
+  "conc_p95": 0.271,
+  "conc_p99": 0.408,
+  "freq_std_p50_hz": 90.4,
+  "freq_std_p95_hz": 372.6,
+  "whistle_score_p95": 0.214,
+  "whistle_score_p99": 0.335,
+  "events_thr0.5_min160ms": 3,
+  "events_thr0.7_min160ms": 0,
+  "events_thr0.8_min160ms": 0
+}

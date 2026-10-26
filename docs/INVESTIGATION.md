@@ -147,7 +147,7 @@ missing-ball regime.
 | W6 | Ball+shape model, bagging, capacity | **done: hit the noise floor** | ball columns add nothing once the leak was fixed (they double-count the ball). Capacity beyond 300 trees is flat. Bagging kept for variance |
 | W7 | Video ball detection: self-supervised YOLO on Colab | **done, not adopted** | §9: detector works (79% top-1 within 2 m), but the merged track lowers the bench (0.656 → 0.642/0.646); a DP linker too (0.629–0.635, §9.1) |
 | W8 | External tracking data: IDSSE + Metrica sample (PFF needs a personal sign-up form, skipped) | **done** | §6: masked 0.35 → 0.47 |
-| W9 | Technical document and public repo hygiene | not started | — |
+| W9 | Technical document and public repo hygiene | **in progress** | draft `Yamanalyst.md`; ROADMAP R9, R23 |
 
 ## 6. W8: external tracking data
 
@@ -219,8 +219,8 @@ simplest one: external true labels only.
 
 ## 7. Submission history
 
-> **Superseded.** The current submission is `final_v1` (§8 and README.md: public spellF1 0.700,
-> bench 0.656). This section records the reasoning at the `fused_ext_v2` stage.
+> **Superseded.** The current submission is `final_v5` (§24: public spellF1 0.723, bench 0.661).
+> This section records the reasoning at the `fused_ext_v2` stage.
 
 | | public spellF1 | public macroF1 | **masked spellF1** (full-match proxy) | full-match possessions |
 |---|---|---|---|---|
@@ -857,3 +857,74 @@ and extra-noise copies already supply. What is left is real but small: ext +0.00
 fewer spurious spells (3.6 → 2.9 per 100), recall up at 2–10 s, while our window loses a little
 (masked −0.007, public −0.013, one possession either way on 17). Possessions under 2 s stay at
 0.186: the touch sequence alone does not find them. `feats.flight_block` stays available.
+
+## 26. After `final_v5`: three research tracks, nothing adopted (2026-10-25/26)
+
+Three tracks ran after the freeze candidate `final_v5`, each in its own folder and each read-only on
+`mtah/` and `run.py`. Full records are in the linked folders; this section keeps the numbers that
+decide what not to repeat. Locked baseline throughout: `final_v5` fold models (`cache/P_R1.npz`),
+bench **0.6612**, ext 0.6163, masked 0.7061, public (fold) 0.6968; full-fit public 0.7226 / 0.9098.
+Reproduced by `baseline_snapshot/reconstruct_baseline.py` (see `baseline_snapshot/`).
+
+### 26.1 Integrity review and decoder/training ideas (`analysis/autonomous_research/`)
+
+Registry: `analysis/autonomous_research/REGISTRY.json`; log: `RESEARCH_LOG.md`.
+
+| id | idea | bench | ext | masked | public (spell/macro) | verdict |
+|---|---|---|---|---|---|---|
+| AR-EARLY-DUEL | extra switch cost in duels | 0.660 | | | | flat |
+| AR-EARLY-SMOOTH | geometric (BOCPD-style) smoother | 0.633 | | | | negative |
+| AR-EARLY-SEMI | semi-Markov duration decoder (after fixing an unreachable-boundary bug) | 0.657 | 0.614 | 0.699 | | not adopted |
+| AR-E1 | contest-duel sample reweighting (full recipe) | 0.658 | 0.613 | 0.703 | | negative (screen +0.020 vanished) |
+| AR-G3 | Metrica sample game 3 as a one-time frozen holdout | | | | baseline 0.6128/0.8764, E1 0.6128/0.8770 | tied; **holdout now consumed** |
+| AR-DOG0 | difference-of-Gaussians logit sharpening | 0.667 (dev) | | | 0.6857/0.9049 (full fit) | dev up, public down: rejected |
+| AR-TI1 | typed transition head (226 feats, λ=2) | 0.6573 | 0.6220 | 0.6926 | 0.671/0.910 | rejected |
+| AR-PI1 | physical transition head (228 feats, λ=2) | 0.6577 | 0.6220 | 0.6934 | 0.671/0.910 | rejected |
+| AR-PL-v2 | hard physical control latch (velocity + carrier continuity) | 0.303 | 0.168 | 0.438 | 0.512/0.881 | strong negative |
+| — | out-of-pitch emission boost ×2/4/8 | 0.6612 | 0.6163 | 0.7061 | | flat |
+| — | broadcast-ball fusion, recovery diagnostic | | | | identical to baseline | 0 label changes |
+| AR-PSEUDO | Smart Tagging as pseudo anchors | | | | | 638 events; kickoff D agreement 0.586; not ground truth |
+| — | goal-conditioned kickoff prior | | | | | blocked: no goal events, team or clock in the tags |
+
+Integrity findings worth keeping: the official scorer was read and confirmed (spellF1 over IoU
+0.3–0.7, greedy same-team matching, X forward-filled within a half). `masked` reuses the public
+window's 17 possessions across 16 ball-mask seeds, so its sd (0.024) is ball-placement noise, not
+possession variance; `ext` (~3,000 possessions) is the steadiest gate, but it is 2 datasets, not 9
+independent clusters. The out-of-fold disagreement on the external matches is 8.7% (IDSSE, mostly
+H↔A) and 14.8% (Metrica, mostly alive called dead), consistent with label-convention differences.
+No hand label reaches `final_v5`: `work/labels/` is read only by `Bench`, which `run.py` never builds.
+The 0.005 adoption margin is a development heuristic, not a significance test.
+
+### 26.2 Causal tracking features (`analysis/feat_track/`)
+
+Five past-only, half-reset blocks on top of `full_plus3` (carrier tightness, centroid compression,
+margin dwell, melee uncertainty, ball-free cluster). Screen: +0.016 to +0.031 bench each. Full
+recipe: `c_margin_dwell` 0.6584, `c_carrier_tightness` 0.6586, both together 0.6495. **Not
+adopted.** This is the fourth time (with R8 §15 and R17 §25) that a large screen gain vanished under
+mirrors and noise copies: the screen drops losers but does not predict winners.
+`c_ballfree_cluster`'s full fit was started and not finished; `c_melee_uncertainty` and
+`c_centroid_compression` were screened only. Details: `analysis/feat_track/README.md`.
+
+### 26.3 Audio and other sources (`analysis/audio_sources/`)
+
+The tactical mp4 carries AAC 48 kHz audio on the same container timeline (edit lists 0; semantic
+audio–video delay unmeasured). A tonal whistle detector (30 s CPU for the match) fires within
+1.4 s of both half kickoffs and the 2nd-half end; 206 events at threshold 0.30, precision unknown
+(no whistle labels). Uses tried on `final_v5`:
+
+| config | public spellF1 / macroF1 | val_h2 spellF1 / macroF1 | verdict |
+|---|---|---|---|
+| `final_v5` | 0.7226 / 0.9098 | 0.5815 / 0.8593 | — |
+| hard D-relabel at whistle events, thr 0.30 / 160 ms | identical | identical | null (3 events, all kickoffs) |
+| hard D-relabel, thr 0.25 / 80 ms | 0.7000 / 0.9037 | 0.5581 / 0.8501 | hurts |
+| soft D-probability nudge, W = 0.15 (fold P) | identical | identical | no effect |
+
+PANNs Cnn14 runs locally (44 ms per 1 s chunk); its Whistle score sits at the output floor in the
+one kickoff window tried. Main blocker: the external training matches have **no audio**, so audio
+cannot be a tree feature; it can only enter as a decoder/post-processing channel or a model fitted
+on our own match. Details: `analysis/audio_sources/docs/FINAL_SOURCE_SYNTHESIS.md`.
+
+### 26.4 Reproducibility
+
+`run.py` reproduced `final_v5` byte for byte on 2026-10-25 (twice) and 2026-10-26
+(`baseline_snapshot/fresh_rebuild.log`, sha256 `4089da237ca8780a…`, public 0.722581 / 0.909848).

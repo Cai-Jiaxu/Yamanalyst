@@ -1,0 +1,37 @@
+yardsticks ready in 24 s
+=== computing head probabilities ===
+  public: mean p=0.0081 max p=0.6812
+  masked0: mean p=0.0080 max p=0.6812
+  masked1: mean p=0.0081 max p=0.6812
+  masked2: mean p=0.0081 max p=0.6812
+  masked3: mean p=0.0081 max p=0.6812
+  masked4: mean p=0.0081 max p=0.6812
+  masked5: mean p=0.0081 max p=0.6812
+  masked6: mean p=0.0081 max p=0.6812
+  masked7: mean p=0.0081 max p=0.6812
+  masked8: mean p=0.0081 max p=0.6812
+  masked9: mean p=0.0081 max p=0.6812
+  masked10: mean p=0.0080 max p=0.6812
+  masked11: mean p=0.0081 max p=0.6812
+  masked12: mean p=0.0080 max p=0.6812
+  masked13: mean p=0.0081 max p=0.6812
+  masked14: mean p=0.0081 max p=0.6812
+  masked15: mean p=0.0081 max p=0.6812
+  idsse_J03WPY: mean p=0.0121 max p=0.6728
+  idsse_J03WN1: mean p=0.0137 max p=0.7272
+  idsse_J03WMX: mean p=0.0112 max p=0.6268
+  idsse_J03WOH: mean p=0.0140 max p=0.7336
+  idsse_J03WQQ: mean p=0.0150 max p=0.7580
+  idsse_J03WOY: mean p=0.0148 max p=0.8038
+  idsse_J03WR9: mean p=0.0120 max p=0.8382
+  metrica_1: mean p=0.0118 max p=0.7055
+  metrica_2: mean p=0.0130 max p=0.6994
+
+=== lambda=0 identity check ===
+lambda0                        bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+  bench 0.6612 ext 0.6163 masked 0.7061 public 0.6968/0.9098 val 0.5792
+
+=== lambda=2 ===
+lambda2                        bench 0.657 | ext 0.622 (idsse 0.614 metrica 0.650) | masked 0.693 | public 0.671/0.910 n14 | val 0.584 valLo 0.742 valMid 0.045 valM 0.843
+  bench 0.6573 ext 0.6220 masked 0.6926 public 0.6710/0.9102 val 0.5835
+  delta: bench -0.0039 ext +0.0057 masked -0.0135 public -0.0258 val +0.0043

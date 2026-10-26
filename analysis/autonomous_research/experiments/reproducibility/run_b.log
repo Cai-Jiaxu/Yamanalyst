@@ -1,0 +1,17 @@
+ar_verified_v5_b             public spellF1 0.7226 macroF1 0.9098 poss 14/17 | full:  269 poss (2.54/min, mean 12.8 s, <1s   2)  H 33% A 21% D 46%
+wrote evaluation/results/ar_verified_v5_b.csv  sha256 4089da237ca8780a
+OK    ar_verified_v5_b.csv
+      199319 rows, frame 0..199318
+
+      label counts
+        H    52668   26.4%
+        A    33158   16.6%
+        D    73031   36.6%
+        X    40462   20.3%
+
+      reports 269 possessions of mean 12.8 s
+      (counted with each X as a gap; the scorer bridges abstentions inside a real
+       possession, so its count can be lower than this one)
+
+Valid. Note this checks the format only -- it says nothing about whether the labels are right.
+Score it against the public ground truth with run_evaluation.py.

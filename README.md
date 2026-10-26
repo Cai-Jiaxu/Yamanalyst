@@ -5,9 +5,15 @@ for each of the 199,319 tactical-video frames of FC Barcelona vs Athletic Club, 
 `D`. Submissions are ranked on **spellF1** (whole possessions matched by temporal IoU). Deadline
 **17 Nov 2026**.
 
-**Current submission: `final_v5`** (`uv run python run.py --name final_v5`, sha256
-`4089da237ca8780a…`). Its scores and how we got there: [docs/INVESTIGATION.md](docs/INVESTIGATION.md)
-§24.
+**New to the project? Start with [HANDOVER.md](HANDOVER.md)**: state, findings, the four
+workstreams and the first-day checklist.
+
+| | what | public spellF1 / macroF1 | where |
+|---|---|---|---|
+| official baseline | starter's nearest player + ±50-frame vote (`baseline_smooth50`) | 0.326 / 0.621 | `starter/baseline.py`, `evaluation/results/baseline_*.csv` |
+| **best verified = current submission** | **`final_v5`**, sha256 `4089da237ca8780a…` | **0.723 / 0.910** (bench 0.661) | `run.py`, `mtah/final.py`; [docs/INVESTIGATION.md](docs/INVESTIGATION.md) §24; locked numbers in [baseline_snapshot/](baseline_snapshot/) |
+
+Nothing tried since `final_v5` has beaten it (§26).
 
 ## Documents
 
@@ -17,6 +23,10 @@ for each of the 199,319 tactical-video frames of FC Barcelona vs Athletic Club, 
 | ours | [docs/ROADMAP.md](docs/ROADMAP.md) | **source of truth for open work**, decisions, dates |
 | ours | [docs/INVESTIGATION.md](docs/INVESTIGATION.md) | **source of truth for evidence**: every measured number and its script, plus the literature review |
 | ours | [docs/REVIEWS.md](docs/REVIEWS.md) | verdicts on outside advice |
+| ours | [HANDOVER.md](HANDOVER.md) | onboarding, the four workstreams and their owners, interfaces, milestones |
+| ours | [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) | one-line index of every experiment (adopted and not), pointing to its record |
+| ours | [baseline_snapshot/](baseline_snapshot/) | locked `final_v5` numbers and the developer interface for experiments |
+| ours | [docs/CLEANUP_REPORT.md](docs/CLEANUP_REPORT.md) | what the 2026-10-26 cleanup moved or archived, and which checks were run |
 | ours | [Yamanalyst.md](Yamanalyst.md) | the technical document we submit (export to PDF) |
 
 ## Data rules (read first)
@@ -25,8 +35,9 @@ for each of the 199,319 tactical-video frames of FC Barcelona vs Athletic Club, 
   ChatGPT, Claude, Gemini (including Gemini in Colab, Drive or Antigravity), Copilot chat and so
   on. This is in the T&Cs. Code you write with an LLM is fine; data and outputs are not. Scripts
   in this repo print aggregates only.
-- **Never commit** `data/`, `cache/`, `external/`, `models/`, `colab_upload/`, `work/` or
-  `evaluation/results/*.csv`. They are all gitignored; keep it that way. This repo becomes
+- **Never commit** `data/`, `cache/`, `external/`, `models/`, `colab_upload/`, `work/`,
+  `_archive/`, `analysis/audio_sources/{cache,pylibs}/`, any `*.npz`/`*.joblib`, or a label CSV
+  (`evaluation/results/*.csv`, `analysis/**/*.csv`). They are all gitignored; keep it that way. This repo becomes
   public at submission.
 - Labels must come from an algorithm. Hand labels are allowed only for training or validation.
 
@@ -124,6 +135,12 @@ the homography as automatic labels, then detects on the missing frames.
 | `run.py` | the one command that writes the submission |
 | `mtah/` | the pipeline (table above) plus `bench.py`, `masking.py`, `score.py`, `report.py`, `kickoff.py`, and measured-but-unused `video*.py`, `mbr.py`, `refiner.py` |
 | `analysis/` | every experiment behind docs/INVESTIGATION.md (`yardsticks.py` scores any decoder on every yardstick). Re-runnable; prints aggregates only |
+| `analysis/autonomous_research/` | post-`final_v5` integrity review and decoder/training experiments (registry + reports) |
+| `analysis/feat_track/` | post-`final_v5` causal tracking-feature blocks, screen and full-fit runners |
+| `analysis/audio_sources/` | audio track research: extraction, whistle detector, PANNs pilot (own isolated `pylibs/`) |
+| `baseline_snapshot/` | locked baseline metrics, reconstruction script, developer handbook |
+| `work/labels/` | person-made validation labels (`val_h2_*.csv`, `ball_probe_300.csv`); gitignored |
+| `_archive/` | local, gitignored archive of duplicates and superseded material (docs/CLEANUP_REPORT.md) |
 | `colab/` | GPU notebook |
 | `scripts/` | downloads (external data, model weights), Colab bundle |
 | `evaluation/` | the official scorer, validator and public ground truth (unchanged from the starter) |

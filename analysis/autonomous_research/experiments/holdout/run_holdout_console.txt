@@ -1,0 +1,8 @@
+=== baseline fold ensemble ===
+  clean P shape (143761, 3) classes_ order [0,1,2]=H,A,D
+=== E1 fold ensemble ===
+  clean P shape (143761, 3)
+clean      spellF1 0.6128 macroF1 0.8764
+clean      spellF1 0.6128 macroF1 0.8770
+stress     spellF1 0.5997 macroF1 0.8690
+stress     spellF1 0.5972 macroF1 0.8699

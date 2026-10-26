@@ -1,0 +1,14 @@
+N frames=199317, whistle p99=-38.6 dB, rms p90=-53.6 dB, peaks=1421
+event                                           frame  nearest_peak  offset_f  offset_s
+1st half kickoff                                11185        10962     -223   -8.92s
+1st half end                                    90651        90111     -540  -21.60s
+2nd half start-of-grading (pre-kickoff)        110808       102661    -8147  -325.88s
+2nd half kickoff                               113742       102661   -11081  -443.24s
+2nd half end                                   190197       190536     +339  +13.56s
+
+segment                frames  peaks  per_min
+pre-match               11185     34     4.56
+1st half play           79467    823    15.53
+halftime                20156      5     0.37
+2nd half play           79390    557    10.52
+after                    9121      2     0.33

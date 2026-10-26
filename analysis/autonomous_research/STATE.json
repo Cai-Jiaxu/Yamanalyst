@@ -1,0 +1,16 @@
+{
+  "status": "paused_diminishing_returns_after_physical_test",
+  "date": "2026-10-26",
+  "summary": "No promotion over final_v5 (public 0.7226 / 0.9098).",
+  "results": {
+    "e1_reweight": {"bench": 0.658, "ext": 0.613, "masked": 0.703},
+    "dog_sharpen": {"dev_bench": 0.667, "public_spell": 0.6857, "public_macro": 0.9049},
+    "typed_head": {"bench": 0.6573, "ext": 0.6220, "masked": 0.6926},
+    "phys228_head": {"bench": 0.6577, "ext": 0.6220, "masked": 0.6934},
+    "physical_latch_v2": {"bench": 0.3030, "ext": 0.1679, "masked": 0.4380, "public_fold_spell": 0.5120, "public_fold_macro": 0.8805}
+  },
+  "future_queue": ["soft uncertainty-aware latch variants", "larger independent labels", "score-invariant label convention study"],
+  "reproduce_implemented_physical_test": ".venv/bin/python analysis/autonomous_research/experiments/physical_latch/true_latch_v2.py",
+  "evaluate_current_submissions": ".venv/bin/python evaluation/run_evaluation.py --results evaluation/results --gt public",
+  "next_research": "soft uncertainty-aware latch (unimplemented, needs design)"
+}

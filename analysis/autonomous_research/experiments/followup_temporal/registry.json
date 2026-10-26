@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-26",
+  "cache": "P_R1.npz (fold probabilities); cache/ar_followup_production_P.npz (production full-fit, 199319x3)",
+  "scorer": "analysis.yardsticks.Yard (official spellF1)",
+
+  "formula": "DoG highpass sharpening: sharp = logP + w*(gauss1d(logP,sigma) - gauss1d(logP,sigma*3)); Q=softmax(sharp) [stable: subtract row max, exp, normalize]; v5 Viterbi. Same weights all classes (NOT asymmetric). R_dec = all-X (use_rules=False).",
+  "primary_params": {"sigma_frames": 12, "w": 0.5, "classes": [0,1,2]},
+  "script_hash": {"peak_filter.py": "d76197bc4cab8cca31fa8ae368c1d298a5b51410d0bd80f644ca01fc5f58c106"},
+
+  "results_cached_P": {
+    "baseline_v2g": {"bench_spellF1": 0.661, "ext_spellF1": 0.616, "masked_spellF1": 0.706, "public_spellF1": 0.697, "public_macroF1": 0.910, "public_spells": 14, "val": 0.579},
+    "DoG_all_sigma12_w05": {"bench_spellF1": 0.667, "ext_spellF1": 0.629, "masked_spellF1": 0.706, "public_spellF1": 0.682, "public_macroF1": 0.907, "public_spells": 17, "val": 0.572},
+    "DoG_HA_only": {"bench_spellF1": 0.667, "ext_spellF1": 0.629, "masked_spellF1": 0.706, "public_spellF1": 0.682, "public_macroF1": 0.903, "public_spells": 17, "val": 0.584},
+    "DoG_D_only": {"bench_spellF1": 0.660, "ext_spellF1": 0.616, "masked_spellF1": 0.704, "public_spellF1": 0.697, "public_macroF1": 0.916, "public_spells": 14, "val": 0.566},
+    "DoG_sigma10": {"bench_spellF1": 0.667, "ext_spellF1": 0.628, "masked_spellF1": 0.706, "public_spellF1": 0.682, "public_macroF1": 0.907, "public_spells": 17, "val": 0.579},
+    "DoG_sigma15": {"bench_spellF1": 0.666, "ext_spellF1": 0.628, "masked_spellF1": 0.704, "public_spellF1": 0.694, "public_macroF1": 0.909, "public_spells": 17, "val": 0.570},
+    "DoG_w03": {"bench_spellF1": 0.667, "ext_spellF1": 0.623, "masked_spellF1": 0.711, "public_spellF1": 0.700, "public_macroF1": 0.910, "public_spells": 15, "val": 0.582},
+    "DoG_w07": {"bench_spellF1": 0.668, "ext_spellF1": 0.629, "masked_spellF1": 0.707, "public_spellF1": 0.686, "public_macroF1": 0.907, "public_spells": 18, "val": 0.565}
+  },
+
+  "results_production_fullfit": {
+    "no_filter_baseline": {"path": "evaluation/results/ar_baseline_check.csv", "sha256": "4089da237ca8780a", "public_spellF1": 0.7226, "public_macroF1": 0.9098, "n_rows": 199319, "zero_weight_identity": "exact match"},
+    "DoG_all_sigma12_w05": {"path": "evaluation/results/ar_candidate_dog.csv", "sha256": "18fb0944d90f1409", "public_spellF1": 0.6857, "public_macroF1": 0.9049, "n_rows": 199319, "argmax_flips": 3075, "status": "negative on public; NOT promoted"},
+    "broken_softmax_v1": {"path": "evaluation/results/ar_candidate_dog.csv (overwritten)", "sha256_old": "829fbadf...", "public_spellF1": 0.0000, "status": "INVALID implementation: logits divided by row sum instead of softmax (classes inverted). Preserved as failed implementation."},
+    "broken_fusion_v1": {"path": "evaluation/results/ar_candidate_dog_fusion.csv", "sha256": "16089e35...", "public_spellF1": 0.0235, "status": "INVALID same softmax bug"}
+  },
+
+  "literature": {
+    "solovyev": {"url": "https://arxiv.org/pdf/2205.10450v2", "title": "Temporally Precise Action Spotting in Soccer Videos Using Dense Detection Anchors", "claim": "SoccerNet-v2 action spotting SOTA", "plus_10_15_event_F1": "UNVERIFIED numeric from paper tables; treated as hypothesised, not adopted as transfer evidence to spellF1"}
+  },
+
+  "fusion_proxy": {"ar_followup_fusion_fill.npy": {"shape": [199319], "fraction": 0.1384, "note": "tactical-missing D-suppression fill; exploratory proxy, not live ball fusion"}},
+
+  "kickoff_anchor_stress": {"n_kickoff_tags": 6, "avg_D_fraction": 0.586, "note": "agreement stress only, not F1 truth; first kickoff falls in X gap"},
+
+  "decision": "Cached-P DoG meets +0.005 dev gate on bench (0.667 vs 0.661) and ext (0.629 vs 0.616). Production full-fit DoG is negative on public (0.6857 vs 0.7226). NOT promoted. H/A-only ablation shows gain comes from possession sharpening; D-only neutral."
+}

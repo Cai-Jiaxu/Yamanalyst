@@ -1,0 +1,6 @@
+yardsticks ready in 30 s
+v5 baseline                    bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+
+=== cycle 2 levers (spellF1 / macroF1) ===
+  v5 baseline      bench 0.6612 | ext 0.6163 (idsse 0.607 metrica 0.648) | masked 0.7061 | public sp 0.6968/mf 0.9098 | val sp 0.5792/mf 0.8411
+                errors/100: missed 22.3 drift 19.4 merge 10.6 spurious 3.6 split 2.0 | pred/true 0.71

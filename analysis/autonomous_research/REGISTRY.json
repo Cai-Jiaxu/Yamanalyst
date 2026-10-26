@@ -1,0 +1,37 @@
+{
+  "project": "more-than-a-hack-2027",
+  "updated": "2026-10-26",
+  "status": "paused_diminishing_returns",
+  "pending_tracks": [],
+  "baseline": {
+    "shipped": "final_v5",
+    "public_spellF1": 0.722581,
+    "public_macroF1": 0.909848,
+    "csv_sha256": "4089da237ca8780a6041bad8cc78261f29e9c5f5ef9fe8d3bdd9d9a8e2951c8a"
+  },
+  "records": [
+    {"id":"AR-E1","name":"contest-duel reweighting","status":"done","protocol":"3-fold external","config":{"duel_weight":0.5,"scope":"IDSSE seen ball, both teams within 2m"},
+     "metrics":{"bench_spell":0.658,"ext_spell":0.613,"masked_spell":0.703},"result":"negative","code":"experiments/convention/e1_full.py","report":"literature/sports/E1_FINAL.md"},
+    {"id":"AR-G3","name":"Metrica Game 3 holdout","status":"done","protocol":"one-time frozen",
+     "metrics":{"baseline_spell":0.6128,"baseline_macro":0.8764,"e1_spell":0.6128,"e1_macro":0.8770},"result":"tied, consumed","report":"experiments/holdout/REPORT.md"},
+    {"id":"AR-DOG0","name":"DoG logit sharpening","status":"done","protocol":"cached P, no refit","config":{"sigma":12,"width":0.5,"op":"log-dog then exp-softmax"},
+     "metrics":{"dev_bench_spell":0.667,"public_full_fit_spell":0.6857,"public_full_fit_macro":0.9049},"result":"dev up, public down, rejected","report":"experiments/followup_temporal/artifacts/LOG.md"},
+    {"id":"AR-TI0","name":"typed transition head lambda=0 identity","status":"done","protocol":"custom Viterbi",
+     "metrics":{"bench_spell":0.6612,"ext_spell":0.6163,"masked_spell":0.7061},"result":"exact baseline"},
+    {"id":"AR-TI1","name":"typed transition head lambda=2","status":"done","protocol":"cached P, H/A cost","config":{"lambda":2,"amp":4,"head":"HistGBDT 100 trees 226 feat"},
+     "metrics":{"bench_spell":0.6573,"ext_spell":0.6220,"masked_spell":0.6926,"public_spell":0.6710,"public_macro":0.9102},"result":"rejected","report":"experiments/followup_typed_integration/REPORT.md"},
+    {"id":"AR-PI0","name":"phys228 lambda=0 identity","status":"done","protocol":"custom Viterbi",
+     "metrics":{"bench_spell":0.6612,"ext_spell":0.6163,"masked_spell":0.7061},"result":"exact baseline"},
+    {"id":"AR-PI1","name":"phys228 transition head lambda=2","status":"done","protocol":"cached P, H/A cost","config":{"lambda":2,"amp":4,"head":"HistGBDT 100 trees 228 feat"},
+     "metrics":{"bench_spell":0.6577,"ext_spell":0.6220,"masked_spell":0.6934,"public_spell":0.6710,"public_macro":0.9103},"result":"rejected","report":"experiments/followup_phys228_integration/REPORT.md"},
+    {"id":"AR-PSEUDO","name":"SmartTags pseudo anchors","status":"availability_only","protocol":"event tags only",
+     "metrics":{"events":638,"kickoff_d_agreement":0.586},"result":"not ground truth, no stress run"},
+    {"id":"AR-PL-v2","name":"true physical latch vector","status":"done","protocol":"cached P, no refit",
+     "metrics":{"bench_spell":0.3030,"ext_spell":0.1679,"masked_spell":0.4380,"public_spell":0.5120,"public_macro":0.8805},"result":"strong negative, rejected","report":"experiments/physical_latch/REPORT.md"},
+    {"id":"AR-EARLY-SMOOTH","name":"geometric smoother","status":"done","metrics":{"bench_spell":0.633},"result":"negative"},
+    {"id":"AR-EARLY-SEMI","name":"semi-Markov duration decoder","status":"done","metrics":{"bench_spell":0.657},"result":"not adopted"},
+    {"id":"AR-EARLY-DUEL","name":"duel switch cost","status":"done","metrics":{"bench_spell":0.660},"result":"flat"}
+  ],
+  "future_queue": ["soft uncertainty-aware physical latch, strict variant already rejected", "larger independent labels", "score-invariant label convention study"],
+  "stop_reason": "Limited independent labels, consistent negative transfer, diminishing returns."
+}

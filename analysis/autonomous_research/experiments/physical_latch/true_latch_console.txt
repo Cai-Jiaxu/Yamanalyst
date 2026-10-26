@@ -1,0 +1,16 @@
+yardsticks ready in 23 s
+=== enable=False identity ===
+tl_off                         bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+  bench 0.6612 ext 0.6163 masked 0.7061 public 0.6968/0.9098 val 0.5792
+
+=== control signal diagnostics (public) ===
+  h_cand=18479 a_cand=12362
+  h_conf=14985 a_conf=10193
+  h_rel_speed: mean=5.661 median=2.870 p90=14.208
+  a_rel_speed: mean=5.606 median=2.870 p90=14.078
+
+=== enable=True true latch ===
+tl_on                          bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+  bench 0.6612 ext 0.6163 masked 0.7061 public 0.6968/0.9098 val 0.5792
+  delta: bench +0.0000 ext +0.0000 masked +0.0000 public +0.0000 val +0.0000
+  elapsed 70.2s

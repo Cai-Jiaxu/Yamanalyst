@@ -1,0 +1,14 @@
+[load] baseline labels: 199319
+[load] baseline label counts: {'D': 73031, 'H': 52668, 'X': 40462, 'A': 33158}
+[load] whistle_score shape: (199315,)
+[events] thr=0.3 min_persist=160ms -> 3 events
+[fusion] relabeled 51 frames (H->D: 51, A->D: 0)
+[fusion] candidate label counts: {'D': 73082, 'H': 52617, 'X': 40462, 'A': 33158}
+[write] /Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/evaluation/results/research_audio_d_relabel.csv
+[public] baseline spellF1=0.722581 macroF1=0.909848
+[public] candidate spellF1=0.722581 macroF1=0.909848
+[val_h2] baseline spellF1=0.581513 macroF1=0.859334
+[val_h2] candidate spellF1=0.581513 macroF1=0.859334
+[delta] public spellF1 +0.000000  macroF1 +0.000000
+[delta] val_h2 spellF1 +0.000000  macroF1 +0.000000
+[done] 0.5 s

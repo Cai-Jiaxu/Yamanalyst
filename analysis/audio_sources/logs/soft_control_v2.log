@@ -1,0 +1,15 @@
+[config] W_NUDGE=0.0, thr=0.3, min_hops=16, stft_latency=3f, causal_lag=5f, persist=50f, D_ctx_thr=0.3
+[match] halves: [(1, 11185, 90651), (2, 110808, 190197)]
+[load] public P shape: (199319, 3)
+[events] 3 confirmed events at thr=0.3
+[nudge] events with context trigger: 2/3
+[nudge] frames modified: 102
+soft_audio_nudge                   bench 0.661 | ext 0.616/0.892 (idsse 0.607 metrica 0.648) | masked 0.706/0.916 | public 0.697/0.910 | 40s
+                                   val_h2 (57 possessions) spellF1/macroF1 0.563/0.863 | teamAcc 0.890 | deadF1 0.943
+                                   ext errors per 100 true possessions: split 2.0 merge 10.6 drift 19.4 missed 22.3 spurious 3.6 | pred/true 0.71
+
+=== W=0.0 results (fold-ensemble baseline) ===
+public spellF1=0.696774  macroF1=0.909828
+val_h2 spellF1=0.562712  macroF1=0.863147
+bench=0.661160 (ext 0.6163 masked 0.7061)
+[save] /Users/bytedance/Desktop/BARCA/more-than-a-hack-2027/research_sources_hack2027/cache/soft_nudge_control_summary.json

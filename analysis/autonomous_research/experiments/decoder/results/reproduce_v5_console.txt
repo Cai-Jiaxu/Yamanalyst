@@ -1,0 +1,11 @@
+yardsticks ready in 26 s
+final_v5 (repro)               bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+
+=== final_v5 fold-bench reproduction ===
+decoder config: {'w_shape': 0.75, 'cost_dead': 12.0, 'cost_team': 12.0, 'min_dead': 25, 'kickoff': 'half', 'use_rules': False, 'stop_gate': 100, 'w_bound': 0.0}
+bench   0.6612  (ext 0.6163 + masked 0.7061)
+ext     0.6163  idsse 0.6073  metrica 0.6477
+masked  0.7061  (16-seed mean)
+public  spellF1 0.6968  macroF1 0.9098  (n_pred_spells 14)
+val_h2  spellF1 0.5792  macroF1 0.8411  valLo 0.7423  valMid(team err) 0.0455
+ext errors /100 true poss: missed 22.3 drift 19.4 merge 10.6 spurious 3.6 split 2.0 | pred/true 0.71

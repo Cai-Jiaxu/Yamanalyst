@@ -1,0 +1,10 @@
+yardsticks ready in 32 s
+=== per-case: baseline vs injected (label diffs, prob max-diff, score) ===
+  public    : injected_frames ~1941   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked0   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked1   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked2   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked3   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked4   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked5   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098
+  masked6   : injected_frames ~1797   label_diff 533   prob_maxdiff 0.9675 | base sp 0.6968/mf 0.9098 -> inj sp 0.6968/mf 0.9098

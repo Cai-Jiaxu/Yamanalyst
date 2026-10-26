@@ -8,11 +8,14 @@ same commit as the result. Each document has one job and no other document repea
 | `docs/ROADMAP.md` (this) | open items, their order, decision rules, status, dates |
 | [docs/INVESTIGATION.md](INVESTIGATION.md) | the evidence: every measured number, the script behind it, and the literature |
 | [docs/REVIEWS.md](REVIEWS.md) | verdicts on outside advice (Do / Test / Defer / No) |
+| [docs/EXPERIMENTS.md](EXPERIMENTS.md) | one-line index of every experiment, pointing into the records below |
+| [HANDOVER.md](../HANDOVER.md) | who owns which open item (Persons 1–4), interfaces, milestones |
+| [baseline_snapshot/](../baseline_snapshot/) | the locked baseline numbers and the developer interface for experiments |
 | [README.md](../README.md) | how to run it; which file is the current submission |
 | [Yamanalyst.md](../Yamanalyst.md) | the technical document we submit (its numbers are copied from INVESTIGATION.md at the freeze) |
 | [challenge/](../challenge/) | the organiser's documents, unchanged |
 
-Last updated 2026-10-25.
+Last updated 2026-10-26.
 
 ## Where we stand
 
@@ -20,6 +23,9 @@ Submission **`final_v5`**: `final_v2` decoder + stoppage gate, no rule vote (INV
 §24). It reverses `final_v3`/`v4`, which were chosen on eye labels that reward the rules' boundary
 timing. Since then measured and not adopted: MBR decoding (§21), GRU/TCN refiners (§22–23).
 The one large error left is short possessions; R17's touch-sequence features did not move it (§25).
+After `final_v5`, three more tracks (integrity review and decoder/training ideas, causal tracking
+features, audio) were measured and none adopted (§26). The team of four takes over from here:
+owners are in [HANDOVER.md](../HANDOVER.md).
 
 ## Dates
 
@@ -75,14 +81,19 @@ model-suggested boundaries for labellers, and its unmeasured timing figures.
 | R8 | Velocity-projected pitch control | Review 4 #2 | screen, then one refit | rule 7 screen, then bench rule | **done, not adopted**: screen +0.014, full fit 0.656 = no change (INVESTIGATION.md §13, §15) |
 | R10 | **Why the model drifts in the 2nd half** | val_h2 team accuracy 0.78–0.94 vs 0.958 public | hours | — | **done** (§18): errors happen with the ball visible and are confident; model and rules each win in different windows |
 | R11 | **Per-frame stacker** of model probabilities and rule evidence, fitted in-domain with leave-one-window-out CV over public + the 4 val windows (5 folds); a handful of parameters only (e.g. logistic on log P, rule vote, ball-near, on-ball distance margin) | §18: neither source dominates, so a per-frame choice beats any fixed blend | hours, decoder-level, no refit | must beat `final_v3` on every held-out window on average and not lose public by > 0.02 | **done**: stacker not adopted (public −0.08, ext −0.12); its stoppage gate adopted → **`final_v4`** (val_h2 0.632, possessions 286 → 278; INVESTIGATION.md §19) |
-| R13 | **Stoppage-blip gate**: live spell ≤ 4 s between dead balls while players walk → dead | §16: ATD tracks a returned ball in stoppages | minutes, post-decode | does no harm on any yardstick | **measured, awaiting adoption** (§19): on `final_v3` public +0.022, masked +0.008, ext/val unchanged |
+| R13 | **Stoppage-blip gate**: live spell ≤ 4 s between dead balls while players walk → dead | §16: ATD tracks a returned ball in stoppages | minutes, post-decode | does no harm on any yardstick | **done → `final_v4`, kept in `final_v5`** (`stop_gate=100` in `mtah/final.py`; §19, §24): on `final_v3` public +0.022, masked +0.008, ext/val unchanged |
 | R12 | Make the model trust a visible ball (milder-noise augmentation where the ball is seen) | §18: model errs with the ball visible | one refit | val_h2 + ext | **closed**: its premise was the eye labels' timing (§20); mid-possession the model already matches the rules |
 | R14 | **Audit the yardsticks**: where do H↔A changes land on real GT vs eye labels? | §18–19 chose on val_h2 against every real-GT yardstick | hours, cached `P_R1` | — | **done → `final_v5`** (§20): rules 1.6 s early on real GT, 0–2 frames on eye labels; v2 decoder + gate +0.025 bench |
 | R15 | Segmental MBR decoding for expected spellF1 | Viterbi optimises path probability, not the metric | hours, decoder only | bench rule | **done, not adopted**: +0.001 (§21) |
 | R16 | Learned temporal refiner (GRU / TCN) over the trees' probabilities | MS-TCN / ASRF; Kaggle CMI sleep | ~1–2 h CPU per run | bench rule | **done, not adopted**: ext +0.011–0.017, masked −0.02–0.03, public −0.04–0.06; learns external label conventions (§22–23) |
 | R17 | **Short-possession recall**: touch-sequence and kick features (`feats.flight_block`, `full_plus5`) | 20–30% of true spells are < 2 s, recall ~0.19 (§20) | screen, then one refit | rule 7 screen; then bench rule, judged also per duration bin and spurious/100 | **done, not adopted** (§25): screen +0.040, full fit +0.001 (ext +0.009, masked −0.007); < 2 s recall unchanged at 0.186 |
-| R18 | **Calibrate the eye labels** (team task, by a person, never an LLM): label the public window by eye without looking at the GT, compare with the real GT | decides what `val_h2` can still judge (§20) | ~1 person-hour | — | open |
-| R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **draft**: `Yamanalyst.md` (refresh numbers at the freeze; export to PDF, `*.pdf` is gitignored) |
+| R18 | **Calibrate the eye labels** (team task, by a person, never an LLM): label the public window by eye without looking at the GT, compare with the real GT | decides what `val_h2` can still judge (§20) | ~1 person-hour | — | open (Person 3) |
+| R19 | **Finish the diverse feature full fits** (`c_ballfree_cluster`, `c_melee_uncertainty`, `analysis/feat_track/feat_full_diverse.py`) | screened +0.017/+0.018, full fit started and interrupted (§26.2) | ~50 min each, caches half built | bench rule | open (Person 1); expect ≤ +0.005 |
+| R20 | **Stoppage-ball gate v2**: live spell inside a stoppage when players walk (< 1.3 m/s) and no player within 5 m of the ball → dead | Yamanalyst §6; §16: ATD tracks a returned ball during stoppages | hours, post-decode on cached P | does no harm on any yardstick, gains on public/masked/val stoppage spells | open (Person 1) |
+| R21 | **Whistle labels for audio**: a person marks referee whistles on 2–3 val windows, to give the tonal detector a precision/recall | §26.3: precision unknown, the one blocker that labels can lift | ~2 person-hours | — | open (Person 2) |
+| R22 | **Noise floor of the bench**: refit `final_v5` with 2–3 other `random_state`s and record bench/ext/masked spread | every "not adopted" since R8 lands within 0.003; the 0.005 margin is a heuristic (§26.1) | 2–3 refits | — | open (Person 3) |
+| R23 | **Privacy review before going public**: read every new committed file under `analysis/` and `baseline_snapshot/` for frame-level outputs | repo goes public at submission; research logs were written by several agents | ~1 h | nothing frame-level, no match-derived arrays | open (Person 4) |
+| R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **draft**: `Yamanalyst.md` (refresh numbers at the freeze; export to PDF, `*.pdf` is gitignored); owner Person 4 |
 
 Not on the list, and why: Smart Tagging fusion, `is_metrica`, X on boundaries, EM prior,
 IDSSE relabel, boundary snapping, re-ranking video candidates (REVIEWS.md); ball-free deep
@@ -91,11 +102,14 @@ shape model is, INVESTIGATION.md §0); more labelled matches (no ready source in
 PFF needs a personal sign-up, SkillCorner has no per-frame possession); duration priors (§11 and
 the sixth review: null).
 
-## Next steps (2026-10-25)
+## Next steps (2026-10-26)
 
-1. R18: one person-hour, any team member.
-2. Freeze (14 Nov): refresh Yamanalyst.md's numbers from INVESTIGATION.md, export the PDF.
-3. 15 Nov: repo public, clean-clone `run.py` gives the README sha.
+Ordered milestones and owners: [HANDOVER.md §H](../HANDOVER.md#h-shared-milestones-and-completion-criteria).
+
+1. Everyone reproduces `final_v5` on their own machine (README sha) — the gate for any other work.
+2. R18 and R21 (person-run labelling), R22 (noise floor), R19/R20 (last modelling candidates).
+3. 10 Nov registration; 14 Nov freeze: refresh Yamanalyst.md's numbers from INVESTIGATION.md, export the PDF.
+4. 15 Nov: R23 privacy review, repo public, clean-clone `run.py` gives the README sha.
 
 ## Known issues and risks
 

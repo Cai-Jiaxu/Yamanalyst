@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Technical summary - MTAH 2027</title>
+<style>
+@page{size:A4;margin:14mm;}
+body{font:10px/1.4 -apple-system,sans-serif;color:#1a1d22;}
+h1{font-size:17px;margin:0 0 2px;}
+h2{font-size:12px;margin:11px 0 3px;border-bottom:1px solid #ccc;}
+table{border-collapse:collapse;width:100%;font-size:9px;margin:3px 0;}
+th,td{border:1px solid #ccc;padding:2px 4px;}
+th{background:#f0f2f4;}
+.num{text-align:right;}
+ul{margin:2px 0 2px 15px;}
+code{background:#f1f3f5;padding:0 3px;font-size:8.5px;}
+</style>
+</head>
+<body>
+<h1>Possession classification for tactical football match frames</h1>
+<div>MTAH 2027 technical summary. Shipped system final_v5.</div>
+
+<h2>1. Method</h2>
+<p>Each frame gets home, away, dead ball, or abstain, ranked by spellF1 (temporal IoU). A
+histogram-gradient-boosted classifier reads frame features, trained on nine external matches with
+event/rule-derived labels, degraded to tactical-view noise, with mirrors and noise draws. A fixed-cost
+Viterbi decoder enforces switch and dead costs, minimum dead length, half kickoff, and stop gate.</p>
+
+<h2>2. Scores</h2>
+<table>
+<tr><th>version</th><th class="num">spellF1</th><th class="num">macroF1</th><th>note</th></tr>
+<tr><td><b>final_v5 shipped</b></td><td class="num"><b>0.7226</b></td><td class="num"><b>0.9098</b></td><td>17 public possessions</td></tr>
+<tr><td>dev bench baseline</td><td class="num">0.6612</td><td class="num"></td><td>external held-out</td></tr>
+</table>
+
+<h2>3. Follow-up experiments</h2>
+<table>
+<tr><th>experiment</th><th class="num">bench</th><th class="num">ext</th><th class="num">masked</th><th>result</th></tr>
+<tr><td>contest-duel reweight</td><td class="num">0.658</td><td class="num">0.613</td><td class="num">0.703</td><td>negative</td></tr>
+<tr><td>DoG sharpening</td><td class="num">0.667</td><td class="num"></td><td class="num"></td><td>public 0.6857/0.9049, down</td></tr>
+<tr><td>typed transition head</td><td class="num">0.6573</td><td class="num">0.6220</td><td class="num">0.6926</td><td>rejected</td></tr>
+<tr><td>phys228 head</td><td class="num">0.6577</td><td class="num">0.6220</td><td class="num">0.6934</td><td>rejected</td></tr>
+<tr><td>true physical latch v2</td><td class="num">0.3030</td><td class="num">0.1679</td><td class="num">0.4380</td><td>strong negative, public fold 0.5120/0.8805</td></tr>
+</table>
+<p>True physical latch uses vector ball-player relative velocity, same-carrier continuity (8/10 frames),
+D/X preserved, no-op identity tested. Availability: mean 20 visible players, ball finite 58.1%.</p>
+
+<h2>4. Reproduction</h2>
+<pre>.venv/bin/python run.py --name &lt;tag&gt;
+.venv/bin/python evaluation/run_evaluation.py --results evaluation/results --gt public</pre>
+<p>CSV: frame,label, 199319 rows. Shipped sha256 4089da23. Config: 226 features, HistGBDT 600 trees.</p>
+
+<h2>5. Limitations</h2>
+<ul>
+<li>Public 17 possessions; no statistical significance established.</li>
+<li>Nine external matches reused; Game 3 holdout consumed.</li>
+<li>Ball missing on about 41 percent of graded frames.</li>
+<li>No explicit goal-event tags; formation mode priors already tested negative.</li>
+<li>Paused after tested fixed-variant physical latch fails. Not all physical methods ruled out.</li>
+</ul>
+
+<h2>6. References</h2>
+<ul style="font-size:8px">
+<li>Confident Learning. https://arxiv.org/abs/1911.00068</li>
+<li>Snorkel. https://arxiv.org/abs/1605.07720</li>
+<li>Renner GNN-LSTM. https://arxiv.org/abs/2610.11571</li>
+<li>Bauer and Anzer. https://link.springer.com/content/pdf/10.1007%2Fs10618-021-00763-7.pdf</li>
+</ul>
+</body>
+</html>

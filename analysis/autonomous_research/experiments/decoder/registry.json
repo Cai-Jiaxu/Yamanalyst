@@ -1,0 +1,191 @@
+{
+ "task": "ar_decoder",
+ "description": "Decoder-track experiments for MTAH final_v5. Cached fold probabilities only; no refit, no manual labels. Adoption: bench up >=0.005 and ext/masked not down >0.005. Official scorer authoritative; public window never used to choose. venv interpreter used directly (no uv.lock mutation).",
+ "baseline": {
+  "name": "final_v5",
+  "pfile": "cache/P_R1.npz",
+  "featfn": "feats.full_plus3",
+  "model": "HistGBDT 600 trees, mirrors + extra-noise copies (mtah/final.py MODEL)",
+  "decoder": {
+   "w_shape": 0.75,
+   "cost_dead": 12.0,
+   "cost_team": 12.0,
+   "min_dead": 25,
+   "kickoff": "half",
+   "use_rules": false,
+   "stop_gate": 100,
+   "w_bound": 0.0
+  },
+  "reproduced": {
+   "bench": 0.6612,
+   "ext": 0.6163,
+   "idsse": 0.6073,
+   "metrica": 0.6477,
+   "masked": 0.7061,
+   "public_spellF1": 0.6968,
+   "public_macroF1": 0.9098,
+   "val_spellF1": 0.5792,
+   "val_macroF1": 0.8411,
+   "errors_per100": {
+    "missed": 22.3,
+    "drift": 19.4,
+    "merge": 10.6,
+    "spurious": 3.6,
+    "split": 2.0
+   },
+   "pred_over_true": 0.71
+  },
+  "history_claim": {
+   "bench": 0.661,
+   "ext": 0.616,
+   "masked": 0.706
+  },
+  "status": "reproduced_exactly",
+  "artifact": "analysis/autonomous_research/experiments/decoder/results/reproduce_v5_console.txt"
+ },
+ "adoption_rule": "bench delta >= +0.005 AND ext delta >= -0.005 AND masked delta >= -0.005. Else rejected.",
+ "runs": [
+  {
+   "id": "R0",
+   "name": "final_v5 baseline",
+   "status": "baseline",
+   "config": "frozen v5 decoder",
+   "metrics": {
+    "bench": 0.6612,
+    "ext": 0.6163,
+    "masked": 0.7061,
+    "public_sp": 0.6968,
+    "public_mf": 0.9098,
+    "val_sp": 0.5792,
+    "val_mf": 0.8411
+   },
+   "delta_vs_baseline": {
+    "bench": 0.0,
+    "ext": 0.0,
+    "masked": 0.0
+   }
+  },
+  {
+   "id": "E3",
+   "name": "duel-conditioned H/A switch cost",
+   "status": "rejected",
+   "hypothesis": "Raise H<->A cost when >=1 home AND >=1 away within 2m (contested duel); loose ball stays last team.",
+   "config": "extra_team in {+1,+2,+4,+8} nats on duel frames (seen & nh2>=1 & na2>=1); stop_gate=100, min_dead=25 identical",
+   "metrics": {
+    "bench": {
+     "+1": 0.6608,
+     "+2": 0.6606,
+     "+4": 0.6601,
+     "+8": 0.6602
+    },
+    "ext_min": 0.614,
+    "masked": 0.706
+   },
+   "delta_vs_baseline": {
+    "bench": -0.0004,
+    "ext": -0.0007,
+    "masked": 0.0
+   },
+   "note": "bench flat to slightly negative; spurious stays 3.6/100. decoder already conservative (pred/true 0.71). +0.011 val_h2 bump is the known eye-label trap, not adopted.",
+   "artifact": "results/e3_sweep_console.txt"
+  },
+  {
+   "id": "C1",
+   "name": "cheaper alive<->dead cost (cost_dead=8)",
+   "status": "rejected",
+   "hypothesis": "Recover short live spells; stop_gate already blocks stoppage spurious.",
+   "metrics": {
+    "bench": 0.66,
+    "ext": 0.6147,
+    "masked": 0.7052
+   },
+   "delta_vs_baseline": {
+    "bench": -0.0012,
+    "ext": -0.0016,
+    "masked": -0.0009
+   },
+   "note": "errors/100 unchanged (missed 22.3, drift 19.4). No recovery of missed short spells."
+  },
+  {
+   "id": "C2",
+   "name": "cost_dead=6",
+   "status": "rejected",
+   "metrics": {
+    "bench": 0.6588,
+    "ext": 0.6151,
+    "masked": 0.7024
+   },
+   "delta_vs_baseline": {
+    "bench": -0.0024,
+    "ext": -0.0012,
+    "masked": -0.0037
+   },
+   "note": "worse on both ext and masked."
+  },
+  {
+   "id": "C3",
+   "name": "boundary head w_bound=0.5",
+   "status": "rejected",
+   "metrics": {
+    "bench": 0.6595,
+    "ext": 0.6177,
+    "masked": 0.7014
+   },
+   "delta_vs_baseline": {
+    "bench": -0.0017,
+    "ext": 0.0014,
+    "masked": -0.0047
+   },
+   "note": "ext up but masked down; net bench negative."
+  },
+  {
+   "id": "C4",
+   "name": "boundary head w_bound=1.0",
+   "status": "rejected",
+   "metrics": {
+    "bench": 0.6608,
+    "ext": 0.6202,
+    "masked": 0.7014
+   },
+   "delta_vs_baseline": {
+    "bench": -0.0004,
+    "ext": 0.0039,
+    "masked": -0.0047
+   },
+   "note": "Most informative: external-trained boundary conventions lift ext +0.004 but hurt masked our-match -0.005. Cross-track signal for sports/training: do NOT add boundary emission features without our-match calibration (learns external label conventions, per INVESTIGATION 22-23)."
+  },
+  {
+   "id": "AR-F1",
+   "hyp": "projected out-ball D-emission boost (reproj<0.5m gated)",
+   "status": "rejected",
+   "bench": 0.6612,
+   "ext": 0.6163,
+   "masked": 0.7061,
+   "note": "f[out] already exists features.py:110; redundant"
+  },
+  {
+   "id": "AR-F2",
+   "hyp": "replay-filtered broadcast fill D-suppression prior",
+   "status": "below_gate",
+   "bench": 0.6638,
+   "ext": 0.6163,
+   "masked": 0.7113,
+   "note": "+0.0026 bench < +0.005; public/val flat; false-evidence proxy"
+  },
+  {
+   "id": "AR-F3",
+   "hyp": "dense frame-correspondence actual ball recovery (1941 frames)",
+   "status": "no_gain",
+   "public_sp": 0.6968,
+   "public_mf": 0.9098,
+   "note": "533 label flips public but score unchanged; masked seed0 85/4523 overlap 0 diff; seed1 0 overlap"
+  }
+ ],
+ "best": {
+  "id": "R0",
+  "config": "frozen final_v5",
+  "bench": 0.6612,
+  "note": "No decoder candidate cleared adoption bar. Decoder track plateaued; error taxonomy invariant across all transition-cost levers -> errors live in emissions, not smoothing. Best = v5 itself. NOT promoted to final; gates still required."
+ },
+ "diagnostic": "Across E3 + C1-C4 the per-100 error counts are flat: missed ~22, drift ~19, merge ~10.6, spurious ~3.6. Transition-cost levers cannot move the error mix. Missed short spells (<2s recall ~0.19) are an emission/model problem, owned by sports/training track."
+}

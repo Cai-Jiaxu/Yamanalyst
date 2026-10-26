@@ -1,0 +1,11 @@
+yardsticks ready in 23 s
+=== bias=0 identity test ===
+phys_bias0                     bench 0.661 | ext 0.616 (idsse 0.607 metrica 0.648) | masked 0.706 | public 0.697/0.910 n14 | val 0.579 valLo 0.742 valMid 0.046 valM 0.841
+  bench 0.6612 ext 0.6163 masked 0.7061 public 0.6968/0.9098 val 0.5792
+
+=== bias=1.0 physical latch ===
+  public: h_ctrl frames=30102 a_ctrl frames=21802
+  public: h_raw frames=32360 a_raw frames=23658
+phys_bias1.0                   bench 0.642 | ext 0.617 (idsse 0.606 metrica 0.655) | masked 0.667 | public 0.642/0.904 n16 | val 0.562 valLo 0.728 valMid 0.044 valM 0.846
+  bench 0.6422 ext 0.6168 masked 0.6675 public 0.6424/0.9041 val 0.5622
+  delta: bench -0.0190 ext +0.0006 masked -0.0386 public -0.0543 val -0.0169

@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MTAH 2027 baseline snapshot: H/A/D possession</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2358a6ff'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' text-anchor='middle' fill='%230e1116'%3EHAD%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel2: #1c2330;
+    --ink: #e6edf3;
+    --muted: #8b949e;
+    --line: #2d333b;
+    --good: #3fb950;
+    --warn: #d29922;
+    --bad: #f85149;
+    --accent: #58a6ff;
+    --accent2: #bc8cff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 22px 60px; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+  .banner { padding: 10px 14px; border-radius: 6px; margin: 14px 0; font-size: 13px; border: 1px solid var(--line); }
+  .banner.warn { background: rgba(210,153,34,0.08); border-color: rgba(210,153,34,0.4); }
+  .banner.info { background: rgba(88,166,255,0.08); border-color: rgba(88,166,255,0.35); }
+  .banner.bad { background: rgba(248,81,73,0.08); border-color: rgba(248,81,73,0.4); }
+  .grid { display: grid; gap: 12px; }
+  .grid.k4 { grid-template-columns: repeat(4, 1fr); }
+  .grid.k3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.k2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 760px) {
+    .grid.k4 { grid-template-columns: repeat(2, 1fr); }
+    .grid.k3 { grid-template-columns: repeat(2, 1fr); }
+    .grid.k2 { grid-template-columns: 1fr; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+    td, th { white-space: normal; }
+  }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .card .value { font-size: 28px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .card .note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .good { color: var(--good); }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
+  .accent { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+  .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { background: var(--panel2); border-radius: 4px; height: 10px; position: relative; overflow: hidden; margin: 6px 0; }
+  .bar > span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+  .bar.alt > span { background: var(--accent2); }
+  .bar.good > span { background: var(--good); }
+  .row { display: grid; grid-template-columns: 160px 1fr 60px; gap: 10px; align-items: center; margin: 6px 0; font-size: 13px; }
+  .row .n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+    background: var(--panel2); padding: 1px 5px; border-radius: 3px; color: var(--accent);
+    word-break: break-all; overflow-wrap: anywhere; }
+  pre { background: var(--panel2); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink);
+    white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; max-width: 100%; }ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  a { color: var(--accent); }
+  .foot { color: var(--muted); font-size: 12px; margin-top: 30px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
+  .pill.ok { background: rgba(63,185,80,0.15); color: var(--good); }
+  .pill.pend { background: rgba(210,153,34,0.15); color: var(--warn); }
+  .pill.bad { background: rgba(248,81,73,0.15); color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>MTAH 2027 baseline snapshot</h1>
+<p class="sub">Ball possession H/A/D/X per tactical frame. FC Barcelona vs Athletic Club. 199,319 frames.
+Ranking metric spellF1, secondary macroF1. Snapshot date 2026-10-26. Local only, aggregate numbers.</p>
+
+<div class="banner info">
+<b>Read this first.</b> This report records the shipped baseline as measured. It does not claim a
+generalization proof. The private full-match score is the final judge and is hidden until submission.
+The fresh end-to-end rebuild is marked honestly below: prior attempts were killed mid-run.
+</div>
+
+<h2>1. Shipped baseline (official evaluator, public 5-minute GT)</h2>
+
+<div class="grid k4">
+  <div class="card">
+    <div class="label">public spellF1</div>
+    <div class="value good">0.7226</div>
+    <div class="note">official, 17 possessions</div>
+  </div>
+  <div class="card">
+    <div class="label">public macroF1</div>
+    <div class="value good">0.9098</div>
+    <div class="note">H/A/D frame F1 mean</div>
+  </div>
+  <div class="card">
+    <div class="label">predicted possessions</div>
+    <div class="value">14</div>
+    <div class="note">true 17 on public window</div>
+  </div>
+  <div class="card">
+    <div class="label">csv sha256</div>
+    <div class="value" style="font-size:14px; font-family: ui-monospace, monospace; line-height:1.6;">4089da23…<br>e2951c8a</div>
+    <div class="note">final_v5.csv, byte-exact</div>
+  </div>
+</div>
+
+<p class="sub" style="margin-top:10px;">
+Shipped file: <code>evaluation/results/final_v5.csv</code>. Deterministic rebuild command:
+<code>.venv/bin/python run.py --name final_v5</code>. Official scorer:
+<code>.venv/bin/python evaluation/run_evaluation.py --no-detail</code>.
+</p>
+
+<h2>2. Dev benchmark (cached fold probabilities, no refit)</h2>
+
+<p>Numbers from <code>baseline_snapshot/reconstruct_baseline.py</code> on cached <code>cache/P_R1.npz</code>
+(sha16 <code>5c742d750d4b0e39</code>). This is the development yardstick, not the public score.
+It uses 3-fold by match over 9 external fixtures, plus 16 ball-mask seeds on the public window.</p>
+
+<div class="grid k3">
+  <div class="card">
+    <div class="label">bench spellF1</div>
+    <div class="value accent">0.6612</div>
+    <div class="note">(ext + masked) / 2. Frozen target for new features.</div>
+  </div>
+  <div class="card">
+    <div class="label">ext spellF1</div>
+    <div class="value accent">0.6163</div>
+    <div class="note">9 other fixtures, shifted label/source domain</div>
+  </div>
+  <div class="card">
+    <div class="label">masked spellF1</div>
+    <div class="value accent">0.7061</div>
+    <div class="note">16 seeds, sd 0.024 ball-placement noise</div>
+  </div>
+</div>
+
+<div style="margin-top:16px;">
+  <div class="row"><div>bench (frozen target)</div><div class="bar good"><span style="width:66.1%"></span></div><div class="n">0.661</div></div>
+  <div class="row"><div>ext (cross-match)</div><div class="bar"><span style="width:61.6%"></span></div><div class="n">0.616</div></div>
+  <div class="row"><div>idsse (Bundesliga)</div><div class="bar"><span style="width:60.7%"></span></div><div class="n">0.607</div></div>
+  <div class="row"><div>metrica (sample)</div><div class="bar"><span style="width:64.8%"></span></div><div class="n">0.648</div></div>
+  <div class="row"><div>masked (public, ball hidden)</div><div class="bar alt"><span style="width:70.6%"></span></div><div class="n">0.706</div></div>
+  <div class="row"><div>public (fold ensemble)</div><div class="bar alt"><span style="width:69.7%"></span></div><div class="n">0.697</div></div>
+  <div class="row"><div>val_h2 (4 late-2H windows)</div><div class="bar"><span style="width:56.3%"></span></div><div class="n">0.563</div></div>
+</div>
+
+<h2>3. Error taxonomy on external matches (per 100 true possessions)</h2>
+
+<div class="row"><div>missed</div><div class="bar bad"><span style="width:22.3%; background: var(--bad);"></span></div><div class="n">22.3</div></div>
+<div class="row"><div>boundary drift</div><div class="bar warn"><span style="width:19.4%; background: var(--warn);"></span></div><div class="n">19.4</div></div>
+<div class="row"><div>merge</div><div class="bar"><span style="width:10.6%; background: var(--accent2);"></span></div><div class="n">10.6</div></div>
+<div class="row"><div>spurious</div><div class="bar"><span style="width:3.6%; background: var(--accent2);"></span></div><div class="n">3.6</div></div>
+<div class="row"><div>split</div><div class="bar"><span style="width:2.0%; background: var(--accent2);"></span></div><div class="n">2.0</div></div>
+
+<p class="sub">Predicted/true possession ratio 0.71. The decoder is conservative: it misses short
+possessions to avoid spurious ones. Largest error bucket is missed short possessions, then boundary drift.</p>
+
+<h2>4. Validation caveats (read before trusting any number)</h2>
+
+<table>
+  <tr><th>yardstick</th><th>truth source</th><th>independence</th><th>caveat</th></tr>
+  <tr>
+    <td>public</td>
+    <td>organiser public GT, frames 11185..18684, 17 possessions</td>
+    <td>worked example, never tune</td>
+    <td>ball visible 88-99% here, vs 59% match-wide. Best-tracked window.</td>
+  </tr>
+  <tr>
+    <td>masked</td>
+    <td>same public GT, ball hidden in 4-40 s clumps, 16 seeds</td>
+    <td><b>not independent</b></td>
+    <td>reuses the same 17 possessions. sd 0.024 is ball-placement noise, not possession variance.</td>
+  </tr>
+  <tr>
+    <td>ext</td>
+    <td>IDSSE 7 Bundesliga + Metrica 1/2, true per-frame labels</td>
+    <td>other matches</td>
+    <td>shifted label conventions and source domain (no tactical camera, ATD degraded). Cross-match transfer, not in-domain.</td>
+  </tr>
+  <tr>
+    <td>val_h2</td>
+    <td>4 hand-labelled late-2H windows, 57 spells</td>
+    <td>in-domain, hand labels</td>
+    <td>eye labels; timing convention was shown to reward rule boundaries. Allowed for validation only.</td>
+  </tr>
+  <tr>
+    <td>private</td>
+    <td>full-match corrected tracking, 158,857 graded frames</td>
+    <td>final</td>
+    <td>invisible until submission. One of several generalization surfaces, not the only one.</td>
+  </tr>
+</table>
+
+<div class="banner warn">
+<b>Adoption gate is a development practical criterion, not a significance test.</b>
+A new feature is promoted only if bench rises by at least 0.005 vs 0.6612, ext does not fall by
+more than 0.005 vs 0.6163, masked does not fall by more than 0.005 vs 0.7061, and public sanity drop
+is under 0.02. Differences under 0.005 are noise. This gate was calibrated over dozens of internal
+variants. It does not guarantee a private-match improvement.
+</div>
+
+<h2>5. Fresh rebuild: completed and deterministic</h2>
+
+<div class="banner info">
+<b>Fresh end-to-end rebuild completed.</b> Ran detached with
+<code>.venv/bin/python run.py --name snapshot_fresh_rebuild</code>. Started
+2026-10-26 11:57 local, finished 12:05, wall ~8 min on warm caches, exit code 0.
+Output <code>evaluation/results/snapshot_fresh_rebuild.csv</code> (1,682,773 bytes).
+sha256 <code>4089da237ca8780a...e2951c8a</code>, byte-identical to
+<code>final_v5.csv</code>. Official evaluator: macroF1 0.9098, spellF1 0.7226,
+poss 14/17, transF1 0.5946. This confirms the shipped pipeline is deterministic on
+this machine. Two earlier attempts were killed by tool interruptions; this detached
+run survived. Log: <code>baseline_snapshot/fresh_rebuild.log</code>.
+</div>
+
+<h2>5b. Historical public-score trajectory (not new feature claims)</h2>
+
+<p>These are prior pipeline versions on the same public 5-minute GT, from the official
+scoreboard. They are context, not evidence that any new candidate works.</p>
+
+<table>
+  <tr><th>version</th><th>macroF1</th><th>spellF1</th><th>poss pred/true</th><th>note</th></tr>
+  <tr><td>rules_v2</td><td>0.8520</td><td>0.4606</td><td>16/17</td><td>rule-only decoder, early baseline</td></tr>
+  <tr><td>final_v1 / final_v2</td><td>0.8981</td><td>0.7000</td><td>15/17</td><td>first tree+decoder shippable</td></tr>
+  <tr><td>final_v3 / final_v4</td><td>0.9044</td><td>0.6533</td><td>13/17</td><td>intermediate, scored lower than v1/v2 on spellF1</td></tr>
+  <tr><td><b>final_v5 (current shipped)</b></td><td><b>0.9098</b></td><td><b>0.7226</b></td><td><b>14/17</b></td><td>best public spellF1; fresh rebuild byte-identical</td></tr>
+</table>
+
+<h2>5c. Feature candidate screen (SCREEN tier, NOT production gain)</h2>
+
+<div class="banner warn">
+<b>Read this panel carefully.</b> Numbers below come from <code>analysis/feat_screen.py</code>
+at SCREEN tier: 300 trees, no mirror/noise augmentation, same v2g decoder. This is a fast
+filter, not the production recipe (600 trees + mirrors + 3 noise draws). The screen control
+bench = 0.5732, which is 0.088 below the production baseline bench 0.6612. The +0.005
+adoption gate was calibrated against production numbers, so these deltas CANNOT be
+promoted yet. A full production retrain per candidate is required before any claim.
+Source: <code>analysis/feat_screen_results.jsonl</code> (6 rows, 12:24 to 13:10 local).
+</div>
+
+<table>
+  <tr><th>block</th><th>bench</th><th>d</th><th>ext</th><th>d</th><th>masked</th><th>d</th><th>public</th><th>d</th><th>val_h2</th><th>secs</th></tr>
+  <tr><td>control full_plus3</td><td>0.5732</td><td>-</td><td>0.5895</td><td>-</td><td>0.5569</td><td>-</td><td>0.6250</td><td>-</td><td>0.5517</td><td>-</td></tr>
+  <tr><td>c_carrier_tightness</td><td>0.5914</td><td>+0.0182</td><td>0.5931</td><td>+0.0036</td><td>0.5898</td><td>+0.0329</td><td>0.6323</td><td>+0.0073</td><td>0.5499</td><td>573</td></tr>
+  <tr><td>c_centroid_compression</td><td>0.5893</td><td>+0.0161</td><td>0.5917</td><td>+0.0022</td><td>0.5868</td><td>+0.0300</td><td>0.6125</td><td>-0.0125</td><td>0.5715</td><td>503</td></tr>
+  <tr><td>c_margin_dwell</td><td>0.6037</td><td>+0.0305</td><td>0.5933</td><td>+0.0038</td><td>0.6141</td><td>+0.0573</td><td>0.6500</td><td>+0.0250</td><td>0.5602</td><td>504</td></tr>
+  <tr><td>c_melee_uncertainty</td><td>0.5898</td><td>+0.0166</td><td>0.5957</td><td>+0.0062</td><td>0.5838</td><td>+0.0269</td><td>0.6125</td><td>-0.0125</td><td>0.5399</td><td>553</td></tr>
+  <tr><td>c_ballfree_cluster</td><td>0.5909</td><td>+0.0177</td><td>0.5955</td><td>+0.0059</td><td>0.5863</td><td>+0.0294</td><td>0.6125</td><td>-0.0125</td><td>0.5303</td><td>597</td></tr>
+</table>
+
+<p><b>Read-out (screen only, not promotion):</b></p>
+<ul>
+  <li>All 5 candidates lift bench and masked. Masked lift is the largest (+0.027 to +0.057);
+      masked reuses the same 17 public possessions and is in-domain, not a cross-match test.</li>
+  <li>Ext deltas are small (+0.002 to +0.006) and all positive. This is the cross-match holdout
+      with shifted label/source domain; even small positive deltas here are mildly encouraging.</li>
+  <li>Public fold-ensemble is the most relevant held-out (same match, different frames).
+      Only <code>c_margin_dwell</code> (+0.0250) and <code>c_carrier_tightness</code> (+0.0073)
+      improve public. The other three drop public by -0.0125. Yellow flag.</li>
+  <li>val_h2 (hand-labelled same match) is mixed: centroid +0.020, margin +0.009, but melee -0.012,
+      cluster -0.021. Cluster drags val_h2 the most.</li>
+  <li>Spurious possessions per 100 true: control 4.61, candidates 4.15 to 4.53 (slight improvement).</li>
+</ul>
+
+<div class="banner bad">
+<b>No promotion claim yet.</b> Waiting on full production retrain (600 trees + mirrors + noise
+draws) and ablations per candidate. Only <code>c_margin_dwell</code> passes all four screen deltas
+(bench/ext/masked/public all non-negative). The other four need public or val_h2 recovery before
+production investment.
+</div>
+
+<h2>5d. Full-recipe results: 3 candidates run, none promoted</h2>
+
+<div class="banner warn">
+<b>Recipe verified against production P_R1:</b> <code>analysis/feat_full.py</code> uses
+<code>final.MODEL</code> (600 trees seed 0), <code>feats.mirrored + feats.augmented</code>
+(left/right mirrors + home/away swap + 3 noise draws), P2 decoder (locked v5). Baseline
+unrounded reference from <code>baseline_snapshot/baseline_metrics.json</code>: bench 0.66116,
+ext 0.61626, masked 0.70605, public 0.69677, public_macro 0.90983, spur/100 3.62.
+Each full fit ~45-50 min CPU. Source: <code>analysis/feat_full_results.jsonl</code>.
+</div>
+
+<table>
+  <tr><th>candidate</th><th>bench</th><th>d</th><th>ext</th><th>d</th><th>masked</th><th>d</th><th>public</th><th>d</th><th>pubMac</th><th>spur/100</th><th>gate</th></tr>
+  <tr><td><b>baseline</b></td><td><b>0.66116</b></td><td>-</td><td><b>0.61626</b></td><td>-</td><td><b>0.70605</b></td><td>-</td><td><b>0.69677</b></td><td>-</td><td>0.90983</td><td>3.62</td><td>-</td></tr>
+  <tr><td>c_margin_dwell</td><td>0.65838</td><td>-0.00278</td><td>0.61493</td><td>-0.00133</td><td>0.70183</td><td>-0.00422</td><td>0.69333</td><td>-0.00344</td><td>0.90888</td><td>3.78</td><td>FAIL bench</td></tr>
+  <tr><td>c_carrier_tightness</td><td>0.65859</td><td>-0.00257</td><td>0.61624</td><td>-0.00002</td><td>0.70093</td><td>-0.00513</td><td>0.70968</td><td>+0.0129</td><td>0.90798</td><td>3.48</td><td>FAIL bench+masked</td></tr>
+  <tr><td>combo_margin_carrier</td><td>0.64952</td><td>-0.01164</td><td>0.61752</td><td>+0.00125</td><td>0.68153</td><td>-0.02453</td><td>0.68387</td><td>-0.0129</td><td>0.90547</td><td>3.48</td><td>FAIL badly</td></tr>
+</table>
+
+<p><b>Read-out (facts only, no mechanism proven):</b></p>
+<ul>
+  <li>All 3 full fits fail the bench +0.005 gate. No candidate promoted.</li>
+  <li><code>c_carrier_tightness</code> is the closest: public spellF1 +0.0129 (positive), ext flat,
+      spur/100 3.48 (better than baseline 3.62). But bench -0.0026 and masked -0.0051 (just over
+      the 0.005 drop tolerance). public_macro 0.90798 vs 0.90983 (-0.00185).</li>
+  <li><code>c_margin_dwell</code> had the strongest screen (+0.0305 bench) but full reverses to
+      -0.0028. Spur/100 3.78, WORSE than baseline 3.62 by +0.16.</li>
+  <li><code>combo_margin_carrier</code> is worse than either alone on bench (-0.0116) and masked
+      (-0.0245). Suggests the two blocks conflict rather than complement.</li>
+  <li>val_h2 (hand-labelled same match, n=57 possessions) is positive for all 3 (+0.013 to +0.022).
+      This is a diagnostic only, not a promotion gate.</li>
+</ul>
+
+<div class="banner info">
+<b>HYPOTHESIS (not proven):</b> The screen-to-production reversal may be redundancy or
+augmentation interaction. The 300-tree no-augmentation screen overfit the added columns; with
+600 trees plus mirrors and noise draws the base model may already absorb the signal. This is
+NOT a proven "added noise" claim. Component ablations and controlled screen/full recipe
+comparisons are needed before causal attribution.
+</div>
+
+<div class="banner bad">
+<b>Scope of what is tested vs not:</b> Only 3 of 5 candidates were run full (margin, carrier,
+combo). The other 3 screen-positive but not full-run are: c_centroid_compression,
+c_melee_uncertainty, c_ballfree_cluster. These are NOT "full rejected"; they are screen-only.
+An information-diverse uncertainty / ballfree full experiment is still pending, plus a
+source-worker audio evidence experiment (val-only diagnostic, no public tuning). No stop claim
+is justified by the 3 completed rows.
+</div>
+
+<h2>6. Audio source status (analysis/audio_sources)</h2>
+
+<div class="banner info">
+Synthesis: <code>analysis/audio_sources/docs/FINAL_RESEARCH.md</code> (2026-10-26).
+Public-code bundle: <code>_archive/audio_sources/dist/research_sources_hack2027_public.zip</code> (local archive)
+(34.7 KB, scripts + docs only; excludes caches, weights, audio, media, target outputs).
+</div>
+
+<table>
+  <tr><th>item</th><th>status</th><th>measured fact</th></tr>
+  <tr><td>tactical audio decode</td><td><span class="pill ok">measured</span></td>
+      <td>AAC-LC 48 kHz stereo decoded to 16 kHz mono, ~13.5 s for full match. 199,317 hops vs 199,319 frames. Ambient activity consistent with pitch-side (half-time 0.37 loud peaks/min vs 10-15/min in play). No validated semantic alignment to per-frame labels.</td></tr>
+  <tr><td>AV alignment bound</td><td><span class="pill bad">not established</span></td>
+      <td>Container start_time=0, elst media_time=0, PTS offset=0 on both tracks. Acoustic perception latency, model detection latency, and sub-frame drift over 2.2 h are unmeasured. No per-frame alignment bound is claimed.</td></tr>
+  <tr><td>band-energy features</td><td><span class="pill ok">cached</span></td>
+      <td>per-40 ms RMS / whistle-band / crowd-band / speech-band dB. Cache 2.9 MB. Label-free by construction.</td></tr>
+  <tr><td>tonal whistle detector</td><td><span class="pill ok">measured</span></td>
+      <td>STFT 1024 @ 16 kHz, 10 ms hop. 206 tonal events at threshold 0.3 across 106 min. Only 3 of 206 land near the 3 known kickoff/end frames (within 1.5 s). These are unlabelled tonal events, NOT confirmed whistles. Precision/recall not measured.</td></tr>
+  <tr><td>PANNs Cnn14 (generic AudioSet)</td><td><span class="pill pend">pilot only</span></td>
+      <td>60 s window around 1H kickoff on CPU. Peak p: Crowd 0.187, Applause 0.135, Cheering 0.080, Whistle 0.002, Buzzer 0.003. Whistle/Buzzer near model output floor; this is exploratory peak co-occurrence, not event accuracy. Full-match extraction (~6 min CPU) NOT run.</td></tr>
+  <tr><td>YAMNet</td><td><span class="pill pend">not run</span></td>
+      <td>Not executed. Would require TF/TFLite runtime install. PANNs already ran in PyTorch.</td></tr>
+  <tr><td>audio as tree feature</td><td><span class="pill bad">no-op at train time</span></td>
+      <td>External training matches (IDSSE Bundesliga, Metrica) have no audio in released bundles. All-NaN columns cannot be split on. Viable path is decoder-side rule channel, not tree feature.</td></tr>
+  <tr><td>broadcast audio</td><td><span class="pill pend">not decoded</span></td>
+      <td>Own independent timeline, no mapping to tactical. Without sync it is not a per-frame feature.</td></tr>
+</table>
+
+<h2>6b. Audio fusion experiments (v2, causal corrected)</h2>
+
+<div class="banner info">
+Source docs: <code>analysis/audio_sources/docs/AUDIO_D_FUSION_EXPERIMENT.md</code> (v1),
+v2 scripts <code>bin/hardD_fusion_v2.py</code> and <code>bin/soft_nudge_experiment.py</code>.
+v2 fixes three v1 issues: (a) event timestamped at confirmation END not onset, (b) halves derived
+from <code>m.halves</code> not hardcoded, (c) A/B unique CSV snapshots. Baseline
+<code>final_v5.csv</code> sha256 verified unchanged throughout.
+</div>
+
+<h3>Hard D-relabel v2 (event end-timestamped, causal)</h3>
+
+<table>
+  <tr><th>pair</th><th>thr / persist</th><th>events</th><th>relabeled frames</th><th>public spellF1 d</th><th>public macro d</th><th>val_h2 spellF1 d</th><th>val macro d</th><th>verdict</th></tr>
+  <tr><td>A strict</td><td>0.30 / 160 ms</td><td>3 (kickoffs)</td><td>51</td><td>+0.000000</td><td>+0.000000</td><td>+0.000000</td><td>+0.000000</td><td>null: events outside scored windows</td></tr>
+  <tr><td>B permissive</td><td>0.25 / 80 ms</td><td>98</td><td>1520</td><td>-0.022581</td><td>-0.006166</td><td>-0.023448</td><td>-0.009267</td><td>negative: false-positive detector destroys labels</td></tr>
+</table>
+
+<p>v2 B macroF1 = 0.903682 (vs v1 B 0.898556). End-timestamping shifted the relabel window later,
+reducing damage. But spellF1 still drops -0.023. Candidate snapshots:
+<code>evaluation/results/research_hardD_A_v2.csv</code>, <code>research_hardD_B_v2.csv</code>.</p>
+
+<h3>Soft probability nudge v2 (fold P_R1, unchanged decoder)</h3>
+
+<table>
+  <tr><th>config</th><th>events</th><th>frames nudged</th><th>public spellF1</th><th>public macro</th><th>val_h2 spellF1</th><th>val macro</th></tr>
+  <tr><td>control W=0.0</td><td>3 confirmed</td><td>0</td><td>0.696774</td><td>0.909828</td><td>0.562712</td><td>0.863147</td></tr>
+  <tr><td>W=0.15</td><td>3 confirmed, 2/3 context trigger</td><td>102 (already D)</td><td>0.696774</td><td>0.909828</td><td>0.562712</td><td>0.863147</td></tr>
+</table>
+
+<p><b>Soft audit notes:</b></p>
+<ul>
+  <li>Control W=0.0 reproduces cached-P fold-ensemble baseline exactly (public 0.6968, val 0.5627).
+      This is NOT the production final_v5.csv baseline (0.7226/0.5815). Valid limited experiment,
+      but not production parity.</li>
+  <li>Causality: nudge starts at event_end + STFT latency (3 frames = 94 ms) + causal lag (5 frames = 0.2 s).
+      No lookahead. Decoder unchanged (P modified before decoder, not relabeled post-hoc).</li>
+  <li>Half clamp derived from <code>m.halves</code>. Log confirms [(1, 11185, 90651), (2, 110808, 190197)].</li>
+  <li>Context gate: nudge only where model P[:,D] > 0.30. All 102 nudged frames were already D, so
+      W=0.15 produces zero score change. This is a null result, not a negative. The soft rule as
+      configured is too conservative to move anything.</li>
+  <li>Soft includes tracking context (D_ctx_thr=0.30), not pure audio logits.</li>
+</ul>
+
+<div class="banner bad">
+<b>NOT promoted. Audio is NOT ruled out.</b> Hard B is negative because the tonal detector at
+thr=0.25 produces false positives. Soft W=0.15 is null because the context gate already covers
+nudged frames. Cnn14_DecisionLevelMax frame-level model, crowd/cheering features, and less
+conservative context gates are untested. No general audio negative claim is justified.
+</div>
+
+<h2>7. Primary sources (exact URLs)</h2>
+
+<table>
+  <tr><th>source</th><th>use</th><th>url</th></tr>
+  <tr><td>IFAB Laws: whistle body language</td><td>ref whistle fires at kickoff, half, free kick, penalty, after goal</td>
+      <td><a href="https://www.theifab.com/laws/latest/body-language-communication-and-whistle/">theifab.com</a></td></tr>
+  <tr><td>IDSSE / Sportec Open DFL (Bassek et al., Sci Data 2025)</td><td>7 Bundesliga matches, CC BY 4.0. Already the training set.</td>
+      <td><a href="https://www.nature.com/articles/s41597-025-04505-y">nature.com/articles/s41597-025-04505-y</a></td></tr>
+  <tr><td>Metrica sample data</td><td>sample games 1 and 2. Already used.</td>
+      <td><a href="https://github.com/metrica-sports/sample-data">github.com/metrica-sports/sample-data</a></td></tr>
+  <tr><td>PANNs-CNN14 (Kong et al. 2019, arXiv 1912.10211)</td><td>527 AudioSet classes incl. Whistle, Cheering, Crowd</td>
+      <td><a href="https://github.com/qiuqiangkong/panns_inference">github.com/qiuqiangkong/panns_inference</a></td></tr>
+  <tr><td>YAMNet (Google)</td><td>521 AudioSet classes, TFLite, CPU</td>
+      <td><a href="https://www.tensorflow.org/hub/tutorials/yamnet">tensorflow.org/hub/tutorials/yamnet</a></td></tr>
+  <tr><td>Backer 2014 Hough whistle DSP (survey)</td><td>98% on RoboCup dataset, 3.5-4.5 kHz lines</td>
+      <td><a href="https://staff.fnwi.uva.nl/a.visser/education/bachelorAI/daniel_vermaas_thesis_bsc.pdf">uva.nl thesis PDF</a></td></tr>
+  <tr><td>UPC 2014 audio descriptors for soccer highlights</td><td>SVM on 5 hand-annotated matches</td>
+      <td><a href="https://gtav.upc.edu/en/publications/papers/2014/the-importance-of-audio-descriptors-in-automatic-soccer-highlights-generation/">upc.edu</a></td></tr>
+  <tr><td>Cross-feed audio sync (ICASSP 2017)</td><td>crowd chant correlation, broadcast to tactical</td>
+      <td><a href="https://zenodo.org/records/268407/files/icassp17rev.pdf">zenodo.org</a></td></tr>
+  <tr><td>StatsBomb open data</td><td>event-level, not per-frame. Set-piece cadence prior only.</td>
+      <td><a href="https://github.com/statsbomb/open-data">github.com/statsbomb/open-data</a></td></tr>
+</table>
+
+<h2>8. Reproduction commands</h2>
+
+<pre>cd /Users/bytedance/Desktop/BARCA/more-than-a-hack-2027
+
+# Official board (public GT)
+.venv/bin/python evaluation/run_evaluation.py --no-detail
+
+# Validate a submission file
+.venv/bin/python evaluation/validate_submission.py evaluation/results/final_v5.csv
+
+# Dev bench reconstruction (cached P, 40 s)
+.venv/bin/python baseline_snapshot/reconstruct_baseline.py
+
+# Fresh end-to-end rebuild (full refit, ~11 min warm)
+.venv/bin/python run.py --name snapshot_fresh_rebuild
+
+# Feature experiment screen (fast tier)
+.venv/bin/python -c "
+from mtah.bench import Bench
+from mtah import feats
+b = Bench()
+b.screen('candidate', my_featfn)        # only drops clear losers
+b.evaluate('candidate_full', my_featfn)  # adopt only if gate above passes
+"</pre>
+
+<h2>9. Repository and evidence references</h2>
+
+<ul>
+  <li>Shipped model config: <code>mtah/final.py</code> (FEATFN, MODEL, DECODER, SEED)</li>
+  <li>Dev bench interface: <code>mtah/bench.py</code> (Bench, FOLDS, MODEL_DEFAULTS, MASK_SEEDS)</li>
+  <li>Decoder: <code>mtah/decode.py</code> (PARAMS, Viterbi, stop_gate, kickoff)</li>
+  <li>Public GT: <code>evaluation/gt/BAR-ATH_possession_gt_public.csv</code></li>
+  <li>Official scorer: <code>evaluation/possession_metrics.py</code>, <code>evaluation/run_evaluation.py</code></li>
+  <li>Prior research registry: <code>analysis/autonomous_research/REGISTRY.json</code></li>
+  <li>Evidence log: <code>docs/INVESTIGATION.md</code>, <code>docs/ROADMAP.md</code></li>
+  <li>Audio source discovery: <code>analysis/audio_sources/docs/SOURCE_INVENTORY.md</code></li>
+  <li>Snapshot files: <code>baseline_snapshot/OPERATING_INTERFACE.md</code>, <code>ELIGIBILITY_AND_REBUILD.md</code>, <code>baseline_metrics.json</code></li>
+</ul>
+
+<div class="foot">
+This report is aggregate metrics only. No per-frame match data, no video, no audio clip, no private
+ground truth. All processing local. No cloud uploads. Regenerate with the commands above.
+</div>
+
+</div>
+</body>
+</html>

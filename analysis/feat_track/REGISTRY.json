@@ -1,0 +1,223 @@
+{
+  "track": "spatial_temporal_uncertainty_features",
+  "owner": "feature-improvement subagent",
+  "created": "2026-10-26",
+  "baseline_lock": {
+    "source": "baseline_snapshot/OPERATING_INTERFACE.md + baseline_metrics.json",
+    "featfn": "mtah.feats.full_plus3",
+    "model": "HistGradientBoosting max_iter=600 lr=0.05 max_leaf_nodes=31 min_samples_leaf=100 l2=1.0 seed=0",
+    "decoder": {
+      "w_shape": 0.75,
+      "cost_dead": 12,
+      "cost_team": 12,
+      "min_dead": 25,
+      "kickoff": "half",
+      "use_rules": false,
+      "stop_gate": 100
+    },
+    "unrounded_baseline": {
+      "bench_spellF1": 0.6611595515,
+      "ext_spellF1": 0.6162642273,
+      "masked_spellF1": 0.7060548758,
+      "public_spellF1": 0.6967741935,
+      "ext_macroF1": 0.8916817748,
+      "masked_macroF1": 0.9158032116,
+      "public_macroF1": 0.9098282105
+    },
+    "promote_gates": {
+      "bench_min_delta": 0.005,
+      "ext_max_drop": 0.005,
+      "masked_max_drop": 0.005,
+      "public_max_drop": 0.02,
+      "primary_metric": "official spellF1",
+      "secondary_metric": "macroF1"
+    }
+  },
+  "compliance": "all new blocks strictly causal (past-only), half-reset via m.halves; full_plus3 unchanged",
+  "candidates": [
+    {
+      "id": "c_carrier_tightness",
+      "cols": 5,
+      "target": "B2",
+      "future": "none (trailing)",
+      "status": "implemented_causal_smoke_verified",
+      "screen_result": {
+        "bench": 0.5914472221124374,
+        "d_bench": 0.0182,
+        "ext": 0.5931145614680733,
+        "d_ext": 0.0036,
+        "masked": 0.5897798827568015,
+        "d_masked": 0.0329,
+        "public": 0.632258064516129,
+        "d_public": 0.0073,
+        "secs": 573.5
+      },
+      "screen_status": "promoted_to_full",
+      "full_result": {
+        "bench": 0.6585862344295639,
+        "d_bench": -0.00257,
+        "ext": 0.616243485266247,
+        "d_ext": -2e-05,
+        "masked": 0.7009289835928809,
+        "d_masked": -0.00513,
+        "public": 0.7096774193548386,
+        "d_public": 0.0129,
+        "secs": 2749.2
+      },
+      "full_status": "REJECTED_no_promotion"
+    },
+    {
+      "id": "c_centroid_compression",
+      "cols": 3,
+      "target": "B2",
+      "future": "none (backward diff)",
+      "status": "implemented_causal_smoke_verified",
+      "screen_result": {
+        "bench": 0.5892793308866964,
+        "d_bench": 0.0161,
+        "ext": 0.5917275340065029,
+        "d_ext": 0.0022,
+        "masked": 0.5868311277668897,
+        "d_masked": 0.03,
+        "public": 0.6125,
+        "d_public": -0.0125,
+        "secs": 503.4
+      },
+      "screen_status": "dropped_by_evidence_public_neg",
+      "full_status": "screened_ONLY_not_fully_evaluated"
+    },
+    {
+      "id": "c_margin_dwell",
+      "cols": 4,
+      "target": "B2/B3",
+      "future": "none (causal run-length)",
+      "status": "implemented_causal_smoke_verified",
+      "screen_result": {
+        "bench": 0.6037126190209133,
+        "d_bench": 0.0305,
+        "ext": 0.593295070262813,
+        "d_ext": 0.0038,
+        "masked": 0.6141301677790136,
+        "d_masked": 0.0573,
+        "public": 0.65,
+        "d_public": 0.025,
+        "secs": 504.3
+      },
+      "screen_status": "promoted_to_full",
+      "full_result": {
+        "bench": 0.6583813721622951,
+        "d_bench": -0.00278,
+        "ext": 0.6149301525559583,
+        "d_ext": -0.00133,
+        "masked": 0.7018325917686319,
+        "d_masked": -0.00422,
+        "public": 0.6933333333333334,
+        "d_public": -0.00344,
+        "secs": 2657.8
+      },
+      "full_status": "REJECTED_no_promotion"
+    },
+    {
+      "id": "c_melee_uncertainty",
+      "cols": 3,
+      "target": "B2/masked",
+      "future": "none (causal swap)",
+      "status": "implemented_causal_smoke_verified",
+      "screen_result": {
+        "bench": 0.5897528270508529,
+        "d_bench": 0.0166,
+        "ext": 0.5957398582318358,
+        "d_ext": 0.0062,
+        "masked": 0.5837657958698699,
+        "d_masked": 0.0269,
+        "public": 0.6125,
+        "d_public": -0.0125,
+        "secs": 553.1
+      },
+      "screen_status": "dropped_by_evidence_public_neg",
+      "full_status": "screened_ONLY_not_fully_evaluated"
+    },
+    {
+      "id": "c_ballfree_cluster",
+      "cols": 4,
+      "target": "ball-missing",
+      "future": "none (trailing smooth)",
+      "status": "implemented_causal_smoke_verified",
+      "screen_result": {
+        "bench": 0.5908796070418301,
+        "d_bench": 0.0177,
+        "ext": 0.5954656388810542,
+        "d_ext": 0.0059,
+        "masked": 0.5862935752026059,
+        "d_masked": 0.0294,
+        "public": 0.6125,
+        "d_public": -0.0125,
+        "secs": 597.4
+      },
+      "screen_status": "dropped_by_evidence_public_neg",
+      "full_status": "screened_ONLY_not_fully_evaluated"
+    }
+  ],
+  "rejected_before_screen": [
+    "audio energy bands: researched/implemented but NOT EVALUATED (no run). External matches have no audio -> all-null train cols, unlearnable; degenerate control only.",
+    "touch-sequence/kick (prior R17): rejected, not retried",
+    "velocity-projected pitch control (prior R8/full_plus4): rejected, not retried"
+  ],
+  "runs": [
+    {
+      "stage": "screen_300tree",
+      "control_full_plus3": {
+        "bench": 0.5731973013272602,
+        "ext": 0.5895378484199505,
+        "masked": 0.5568567542345698,
+        "public": 0.625
+      },
+      "note": "fresh paired control; deltas in candidates"
+    },
+    {
+      "stage": "full_600tree_recipe",
+      "locked_gates": "bench +>=0.005; ext/masked drop<=0.005; public drop<=0.02",
+      "baseline_unrounded": {
+        "bench": 0.6611595515,
+        "ext": 0.6162642273,
+        "masked": 0.7060548758,
+        "public": 0.6967741935
+      },
+      "outcome": "NO_PROMOTION: all blocks at/below baseline on bench; screen deltas were 300-tree no-augmentation artifacts; reproduces R17 touch-sequence failure mode."
+    }
+  ],
+  "combo_margin_carrier": {
+    "result": {
+      "what": "full_fit",
+      "block": "combo_margin_carrier",
+      "members": [
+        "c_margin_dwell",
+        "c_carrier_tightness"
+      ],
+      "key": "full_cmp__full_plus3__c_margin_dwell__c_carrier_tightness",
+      "secs": 3009.6,
+      "bench": 0.6495225729939649,
+      "ext": 0.6175171171596019,
+      "idsse": 0.6096498758730222,
+      "metrica": 0.6450524616626312,
+      "masked": 0.6815280288283277,
+      "public": 0.6838709677419355,
+      "public_macro": 0.9054715852405231,
+      "val": 0.5778062178588126,
+      "val_macro": 0.8392065559888618,
+      "rec_lt2s": 0.1971563981042654,
+      "rec_2_5s": 0.4815481548154815,
+      "rec_5_10s": 0.7373737373737373,
+      "rec_gt10s": 0.8605714285714285,
+      "spur_per_100": 3.481521156936261,
+      "d_bench": -0.01164,
+      "d_ext": 0.00125,
+      "d_masked": -0.02453,
+      "d_public": -0.0129,
+      "t": "15:35:42"
+    },
+    "verdict": "REJECTED worse than singles (overfit)"
+  },
+  "audio_status": "researched_implemented_NOT_evaluated: external matches have no audio => all-null train columns, unlearnable by HGB; degenerate control, no candidate claim.",
+  "notes": "Screen-inflation/overfit are HYPOTHESES, not proven: no augmentation/learning ablation run yet. Only margin_dwell, carrier_tightness, combo are full-evaluated. Remaining three are screened-only; ballfree_cluster and melee_uncertainty are information-diverse (missingness-targeting, ext screen +0.0059/+0.0062) and going to full recipe."
+}

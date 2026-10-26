@@ -1,0 +1,39 @@
+  anchors 647 live segments 422 mapped tactical frames 52612 (26.4%)
+  recovered actual broadcast ball positions: 1941 frames (after speed gate 0 removed) of 64643 missing graded
+yardsticks ready in 35 s
+=== baseline (no injection) ===
+  public: sp 0.6968 mf 0.9098
+  masked0: sp 0.6968 mf 0.9098
+  masked1: sp 0.6968 mf 0.9098
+  masked2: sp 0.6968 mf 0.9098
+  masked3: sp 0.6968 mf 0.9098
+  masked4: sp 0.6968 mf 0.9098
+  masked5: sp 0.6968 mf 0.9098
+  masked6: sp 0.6968 mf 0.9098
+  masked7: sp 0.6968 mf 0.9098
+  masked8: sp 0.6968 mf 0.9098
+  masked9: sp 0.6968 mf 0.9098
+  masked10: sp 0.6968 mf 0.9098
+  masked11: sp 0.6968 mf 0.9098
+  masked12: sp 0.6968 mf 0.9098
+  masked13: sp 0.6968 mf 0.9098
+  masked14: sp 0.6968 mf 0.9098
+  masked15: sp 0.6968 mf 0.9098
+=== dense-correspondence recovered ball injection ===
+  public: sp 0.6968 mf 0.9098
+  masked0: sp 0.6968 mf 0.9098
+  masked1: sp 0.6968 mf 0.9098
+  masked2: sp 0.6968 mf 0.9098
+  masked3: sp 0.6968 mf 0.9098
+  masked4: sp 0.6968 mf 0.9098
+  masked5: sp 0.6968 mf 0.9098
+  masked6: sp 0.6968 mf 0.9098
+  masked7: sp 0.6968 mf 0.9098
+  masked8: sp 0.6968 mf 0.9098
+  masked9: sp 0.6968 mf 0.9098
+  masked10: sp 0.6968 mf 0.9098
+  masked11: sp 0.6968 mf 0.9098
+  masked12: sp 0.6968 mf 0.9098
+  masked13: sp 0.6968 mf 0.9098
+  masked14: sp 0.6968 mf 0.9098
+  masked15: sp 0.6968 mf 0.9098
