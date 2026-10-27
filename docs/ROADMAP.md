@@ -92,7 +92,7 @@ model-suggested boundaries for labellers, and its unmeasured timing figures.
 | R20 | **Stoppage-ball gate v2**: live spell inside a stoppage when players walk (< 1.3 m/s) and no player within 5 m of the ball → dead | Yamanalyst §6; §16: ATD tracks a returned ball during stoppages | hours, post-decode on cached P | does no harm on any yardstick, gains on public/masked/val stoppage spells | open (Person 1) |
 | R21 | **Whistle labels for audio**: a person marks referee whistles on 2–3 val windows, to give the tonal detector a precision/recall | §26.3: precision unknown, the one blocker that labels can lift | ~2 person-hours | — | open (Person 2) |
 | R22 | **Noise floor of the bench**: refit `final_v5` with 2–3 other `random_state`s and record bench/ext/masked spread | every "not adopted" since R8 lands within 0.003; the 0.005 margin is a heuristic (§26.1) | 2–3 refits | — | open (Person 3) |
-| R23 | **Privacy review before going public**: read every new committed file under `analysis/` and `baseline_snapshot/` for frame-level outputs | repo goes public at submission; research logs were written by several agents | ~1 h | nothing frame-level, no match-derived arrays | open (Person 4) |
+| R23 | **Privacy review before going public**: read every new committed file under `analysis/` and `baseline_snapshot/` for frame-level outputs | repo goes public at submission; research logs were written by several agents | ~1 h | nothing frame-level, no match-derived arrays | **done** 2026-10-27: committed research files read by a team member and cleared; recheck any file added later |
 | R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **draft**: `Yamanalyst.md` (refresh numbers at the freeze; export to PDF, `*.pdf` is gitignored); owner Person 4 |
 
 Not on the list, and why: Smart Tagging fusion, `is_metrica`, X on boundaries, EM prior,
@@ -109,7 +109,7 @@ Ordered milestones and owners: [HANDOVER.md §H](../HANDOVER.md#h-shared-milesto
 1. Everyone reproduces `final_v5` on their own machine (README sha) — the gate for any other work.
 2. R18 and R21 (person-run labelling), R22 (noise floor), R19/R20 (last modelling candidates).
 3. 10 Nov registration; 14 Nov freeze: refresh Yamanalyst.md's numbers from INVESTIGATION.md, export the PDF.
-4. 15 Nov: R23 privacy review, repo public, clean-clone `run.py` gives the README sha.
+4. 15 Nov: privacy check of files added since R23, repo public, clean-clone `run.py` gives the README sha.
 
 ## Known issues and risks
 

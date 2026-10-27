@@ -80,7 +80,7 @@ Not run (explicitly unverified):
 2. **Nothing new is committed.** The four research folders and all doc changes are in the working
    tree only (HANDOVER P4-I3). `git add -n` shows 143 small text files (largest 64 KB), no CSV,
    npz, joblib, audio or video.
-3. **Privacy review pending (R23).** Logs and console dumps under `analysis/autonomous_research/`
+3. **Privacy review (R23): done 2026-10-27** — a team member read the committed research files and cleared them. Original note: Logs and console dumps under `analysis/autonomous_research/`
    and `analysis/audio_sources/logs/` were written by several agents. They were not read line by line
    here (to keep match-derived output out of an LLM); a person must check them before the repo goes
    public. `analysis/autonomous_research/audit/reproduced_public_scoreboard.csv` and

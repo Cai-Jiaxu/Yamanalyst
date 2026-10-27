@@ -355,7 +355,7 @@ that 9 matches are 2 datasets).
 - **P4-N2 Integration of an approved candidate** (only after Person 3 signs off): change
   `mtah/final.py`, run `run.py` twice, update README sha and scores, Yamanalyst table,
   INVESTIGATION, ROADMAP. DoD: new sha reproducible twice; validator OK.
-- **P4-N3 R23 privacy review** before making the repo public: read every committed file under
+- **P4-N3 R23 privacy review** — *done 2026-10-27 for everything committed so far; repeat for files added later* — before making the repo public: read every committed file under
   `analysis/` and `baseline_snapshot/` (logs and console dumps from several agents) and remove or
   aggregate anything frame-level. DoD: written sign-off in CLEANUP_REPORT.
 
