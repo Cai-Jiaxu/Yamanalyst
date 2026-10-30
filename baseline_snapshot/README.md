@@ -19,3 +19,37 @@ public 0.697) come from `reconstruct_baseline.py`; the **full-fit delivered file
 ```bash
 .venv/bin/python baseline_snapshot/reconstruct_baseline.py     # needs cache/P_R1.npz
 ```
+
+## Rebuild the missing probability cache
+
+From the repository root, after `uv sync`, installing the tactical assets (or setting
+`MTAH_DATA_DIR`), and parsing all nine external matches with `uv run python -m mtah.external`:
+
+```bash
+uv run python baseline_snapshot/rebuild_probabilities.py --check
+uv run python baseline_snapshot/rebuild_probabilities.py
+uv run python baseline_snapshot/reconstruct_baseline.py
+```
+
+The rebuild fits three match-held-out models using `full_plus3`, `final.MODEL`, mirrors,
+and all three extra noise draws. External predictions are out of fold; public and masked
+predictions average the three models. It never reuses a fold-model joblib cache. Allow roughly
+an hour for the refit, longer with cold feature caches; run one refit at a time per machine.
+The submission CSV and locked `baseline_metrics.json` are unchanged by the rebuild command.
+The reconstruction command does rewrite `baseline_metrics.json`, so review its diff afterwards.
+
+Existing output is refused by default. Use `--output cache/P_R1_rebuilt.npz` to compare with an
+original cache, or explicitly `--overwrite` to replace it. A validated NPZ is published atomically;
+an aggregate-only `.rebuild.json` report sits alongside it in the gitignored cache directory.
+The NPZ contains only the case arrays expected by existing consumers (columns H, A, D).
+
+The script compares bench, ext, masked, and public spellF1 plus public macroF1 against the
+locked snapshot, with absolute tolerance 0.0001. A mismatch returns exit code 1 and retains
+the rebuilt cache and differences for investigation; it does not establish baseline equivalence.
+Human validation labels are optional and do not enter training. Only aggregate results are printed.
+
+Synthetic contract checks (no match data needed):
+
+```bash
+uv run python -m unittest baseline_snapshot.test_rebuild_probabilities
+```

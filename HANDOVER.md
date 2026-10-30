@@ -169,9 +169,11 @@ broadcast ball, Smart Tagging labels, audio D-relabel/nudge. Numbers: [docs/EXPE
 - Audio: whistle detector precision unknown (no labels); semantic AV delay unmeasured; PANNs
   full-match extraction not run ([analysis/audio_sources/](analysis/audio_sources/README.md)).
 - R18 eye-label calibration not done. Technical document is a draft ([Yamanalyst.md](Yamanalyst.md)).
-- **No script in the repo writes `cache/P_R1.npz`** (final_v1/v5 fold probabilities), which
-  `baseline_snapshot/reconstruct_baseline.py` and ~10 `analysis/` scripts read. It exists only on the
-  original machine. Fix in task P4-I2.
+- **P_R1 rebuild tooling added 2026-10-29:** `baseline_snapshot/rebuild_probabilities.py`
+  writes `cache/P_R1.npz` using the full fold-training recipe and compares aggregate scores
+  with the locked snapshot. Synthetic checks pass; the actual refit and baseline equivalence
+  remain unverified on the new machine because tactical assets and external caches are missing.
+  See [rebuild instructions](baseline_snapshot/README.md#rebuild-the-missing-probability-cache).
 - The research folders `analysis/autonomous_research/`, `analysis/feat_track/`,
   `analysis/audio_sources/`, `baseline_snapshot/` and this documentation are **not committed yet**.
 
@@ -340,11 +342,11 @@ that 9 matches are 2 datasets).
 - **P4-I1 Clean-clone reproduction.** On a fresh clone with data: `uv sync`, external download,
   `run.py --name final_v5`, compare sha with README. DoD: sha `4089da23…` on ≥ 2 machines. Risk:
   first run 30–60 min; TLS proxy env var.
-- **P4-I2 Make `cache/P_R1.npz` reproducible.** No committed script writes it. Remaining: either
-  distribute the original file via the team share (quick, P2-I1) **and** add a script that rebuilds
-  it with the shipped recipe (as `analysis/feat_track/feat_full.py` does for candidates, with
-  `featfn = full_plus3` and `final.MODEL`), then check `reconstruct_baseline.py` gives bench 0.6612
-  on the rebuilt file. DoD: script committed; numbers match or the difference is documented.
+- **P4-I2 Make `cache/P_R1.npz` reproducible.** Rebuild script added 2026-10-29 at
+  `baseline_snapshot/rebuild_probabilities.py` (full_plus3, final.MODEL, mirrors and noise copies,
+  fresh fold models). Remaining: supply the data, run it, then check `reconstruct_baseline.py`
+  gives bench 0.6612 on the rebuilt file. Original-cache distribution via the private share
+  remains useful for comparison. DoD: script committed; numbers match or the difference is documented.
 - **P4-I3 Commit the cleaned repo** (after R23-light: confirm `git status` shows no CSV, npz,
   joblib, audio or video). Message with the cleanup summary. Commit to `main` (team convention).
 
