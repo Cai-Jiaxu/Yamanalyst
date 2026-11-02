@@ -53,3 +53,26 @@ Synthetic contract checks (no match data needed):
 ```bash
 uv run python -m unittest baseline_snapshot.test_rebuild_probabilities
 ```
+
+### Verified on Windows, 2026-11-02
+
+The full rebuild passed using Python 3.11.9 and the locked dependencies. Tactical assets were
+extracted locally and all nine public external matches were downloaded and parsed. The rebuilt
+cache contains fresh fold predictions; no original-machine probability or model cache was used.
+
+| checked metric | rebuilt value | difference from locked reference |
+|---|---|---|
+| bench spellF1 | 0.6611595515410369 | 0 |
+| ext spellF1 | 0.6162642272941614 | 0 |
+| masked spellF1 | 0.7060548757879124 | 0 |
+| public spellF1 (fold ensemble) | 0.696774193548387 | 0 |
+| public macroF1 (fold ensemble) | 0.9098282105426794 | 0 |
+
+The existing `reconstruct_baseline.py` consumer also passed with the same metrics. Its output
+was saved locally as `cache/P_R1.reconstructed_metrics.json`, and the committed
+`baseline_metrics.json` was restored unchanged. The rebuild report is
+`cache/P_R1.rebuild.json`; these local cache artifacts remain gitignored.
+
+All three synthetic rebuild tests and the handover's feature, semi-Markov, and class-order
+test scripts passed in the project environment. `val_h2` was not rechecked because the private
+human-label files were not present. No submission CSV or production model settings changed.

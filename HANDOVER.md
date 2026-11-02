@@ -169,10 +169,12 @@ broadcast ball, Smart Tagging labels, audio D-relabel/nudge. Numbers: [docs/EXPE
 - Audio: whistle detector precision unknown (no labels); semantic AV delay unmeasured; PANNs
   full-match extraction not run ([analysis/audio_sources/](analysis/audio_sources/README.md)).
 - R18 eye-label calibration not done. Technical document is a draft ([Yamanalyst.md](Yamanalyst.md)).
-- **P_R1 rebuild tooling added 2026-10-29:** `baseline_snapshot/rebuild_probabilities.py`
-  writes `cache/P_R1.npz` using the full fold-training recipe and compares aggregate scores
-  with the locked snapshot. Synthetic checks pass; the actual refit and baseline equivalence
-  remain unverified on the new machine because tactical assets and external caches are missing.
+- **P_R1 rebuild verified 2026-11-02:** `baseline_snapshot/rebuild_probabilities.py`
+  rebuilt `cache/P_R1.npz` on Windows with the pinned Python 3.11 environment, tactical assets,
+  and all nine external matches. All five checked metrics match the locked snapshot exactly
+  (bench 0.6611595515410369); `reconstruct_baseline.py` also passed. The three rebuild tests
+  and all three handover test scripts passed. Local human validation labels were not available,
+  so `val_h2` was not rechecked. The committed reference metrics were preserved.
   See [rebuild instructions](baseline_snapshot/README.md#rebuild-the-missing-probability-cache).
 - The research folders `analysis/autonomous_research/`, `analysis/feat_track/`,
   `analysis/audio_sources/`, `baseline_snapshot/` and this documentation are **not committed yet**.
@@ -342,11 +344,11 @@ that 9 matches are 2 datasets).
 - **P4-I1 Clean-clone reproduction.** On a fresh clone with data: `uv sync`, external download,
   `run.py --name final_v5`, compare sha with README. DoD: sha `4089da23…` on ≥ 2 machines. Risk:
   first run 30–60 min; TLS proxy env var.
-- **P4-I2 Make `cache/P_R1.npz` reproducible.** Rebuild script added 2026-10-29 at
-  `baseline_snapshot/rebuild_probabilities.py` (full_plus3, final.MODEL, mirrors and noise copies,
-  fresh fold models). Remaining: supply the data, run it, then check `reconstruct_baseline.py`
-  gives bench 0.6612 on the rebuilt file. Original-cache distribution via the private share
-  remains useful for comparison. DoD: script committed; numbers match or the difference is documented.
+- **P4-I2 Make `cache/P_R1.npz` reproducible — verified 2026-11-02.** Script committed as
+  `ff8421b`: `baseline_snapshot/rebuild_probabilities.py` (full_plus3, final.MODEL, mirrors and
+  noise copies, fresh fold models). The full rebuild and `reconstruct_baseline.py` both reproduce
+  bench 0.6611595515410369 on Windows; all five checked metrics have zero difference from the
+  locked snapshot. Aggregate verification details are in `baseline_snapshot/README.md`.
 - **P4-I3 Commit the cleaned repo** (after R23-light: confirm `git status` shows no CSV, npz,
   joblib, audio or video). Message with the cleanup summary. Commit to `main` (team convention).
 
@@ -422,8 +424,8 @@ candidate. The freeze is 14 Nov.
 **G.7 Compute.** One refit at a time per machine; announce long runs in the team channel with
 expected end time; run them with `nohup caffeinate -i … &` so they survive app crashes and sleep.
 
-**Early blockers to clear first:** P_R1 distribution and script (P4-I2, P2-I1), data on every
-machine (P2-I1), registration (P4-N1).
+**Remaining onboarding dependencies:** data and private labels on every machine (P2-I1),
+registration (P4-N1). P_R1 can now be rebuilt locally; P4-I2 was verified on 2026-11-02.
 
 ## H. Shared milestones and completion criteria
 
@@ -448,7 +450,8 @@ Everyone:
 - [ ] Start `uv run python run.py --name final_v5` (30–60 min first time) and check the sha
       `4089da237ca8780a…` and `validate_submission.py`.
 - [ ] `uv run python evaluation/run_evaluation.py --no-detail` → `final_v5` 0.7226 / 0.9098.
-- [ ] Get `cache/P_R1.npz` and `work/labels/` from the team share, then
+- [ ] Rebuild `cache/P_R1.npz` with `baseline_snapshot/rebuild_probabilities.py` (or get it
+      from the private share); get `work/labels/` from the private share, then
       `.venv/bin/python baseline_snapshot/reconstruct_baseline.py` → bench 0.6612.
 - [ ] Skim [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) so you don't repeat a dead end.
 
@@ -457,7 +460,8 @@ First task each:
 - **Person 1**: P1-N1 (R20 stoppage gate v2) on cached P.
 - **Person 2**: P2-I1 (data + private share for P_R1 and labels), then P2-N1 (whistle labels).
 - **Person 3**: P3-I1 (verify evaluation), then start P3-N1 (seed refits) overnight.
-- **Person 4**: P4-I3 (commit the cleaned repo), P4-I1 (clean clone), P4-I2 (P_R1 script), P4-N1 (registration).
+- **Person 4**: P4-I1 (clean-clone submission reproduction), P4-N1 (registration).
+  P4-I2 (P_R1 rebuild) is verified; see the result above.
 
-Immediate blockers: `cache/P_R1.npz` exists only on the original machine; the research folders and
-docs are not committed yet; registration closes 10 Nov.
+Current onboarding dependencies: match data and private labels on teammates' machines;
+registration closes 10 Nov. The missing P_R1 rebuild tooling and verification are resolved.
