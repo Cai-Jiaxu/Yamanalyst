@@ -341,9 +341,14 @@ that 9 matches are 2 datasets).
 
 **Immediate**
 
-- **P4-I1 Clean-clone reproduction.** On a fresh clone with data: `uv sync`, external download,
-  `run.py --name final_v5`, compare sha with README. DoD: sha `4089da23…` on ≥ 2 machines. Risk:
-  first run 30–60 min; TLS proxy env var.
+- **P4-I1 Windows submission reproduction verified 2026-11-02; clean-clone replay pending.**
+  Two independent full-fit runs in the existing checkout (`windows_repro_20261102_b` and `_c`)
+  reproduce sha `4089da237ca8780a6041bad8cc78261f29e9c5f5ef9fe8d3bdd9d9a8e2951c8a`.
+  Both pass the validator and official public scoring (spellF1 0.722581, macroF1 0.909848).
+  `run.py` now writes explicit UTF-8/LF: the original Windows writer used CRLF, and its diagnostic
+  output matched the baseline exactly after LF normalization. The serialization regression test
+  and required test scripts passed. Remaining: the final fresh-clone replay at the freeze.
+  Details: `baseline_snapshot/README.md`. DoD: expected sha on ≥ 2 machines and clean-clone check.
 - **P4-I2 Make `cache/P_R1.npz` reproducible — verified 2026-11-02.** Script committed as
   `ff8421b`: `baseline_snapshot/rebuild_probabilities.py` (full_plus3, final.MODEL, mirrors and
   noise copies, fresh fold models). The full rebuild and `reconstruct_baseline.py` both reproduce

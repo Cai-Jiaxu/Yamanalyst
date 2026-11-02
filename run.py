@@ -48,7 +48,8 @@ def predict(method, m, f):
 
 
 def write(path, labels):
-    with open(path, "w") as handle:
+    # Explicit LF keeps submission hashes identical on Windows and Unix.
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("frame,label\n")
         handle.writelines("{},{}\n".format(i, c) for i, c in enumerate(labels))
 
