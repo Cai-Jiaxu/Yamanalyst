@@ -76,3 +76,33 @@ was saved locally as `cache/P_R1.reconstructed_metrics.json`, and the committed
 All three synthetic rebuild tests and the handover's feature, semi-Markov, and class-order
 test scripts passed in the project environment. `val_h2` was not rechecked because the private
 human-label files were not present. No submission CSV or production model settings changed.
+
+### Full submission verification on Windows, 2026-11-02
+
+Two independent `run.py` full-model refits in the existing checkout produced the exact locked
+submission SHA-256:
+
+```text
+4089da237ca8780a6041bad8cc78261f29e9c5f5ef9fe8d3bdd9d9a8e2951c8a
+```
+
+| output under `evaluation/results/` | validator | official public spellF1 | official public macroF1 |
+|---|---|---|---|
+| `windows_repro_20261102_b.csv` | pass, 199319 rows | 0.722581 | 0.909848 |
+| `windows_repro_20261102_c.csv` | pass, 199319 rows | 0.722581 | 0.909848 |
+
+The original Windows writer emitted CRLF. A diagnostic run reproduced the expected hash after
+normalizing CRLF to LF, confirming the predictions matched. `run.py` now explicitly writes
+UTF-8 with LF line endings; both subsequent fresh runs match the expected bytes directly.
+No model or decoder parameters changed. The new byte-level serialization test failed before
+the fix and passes afterwards:
+
+```bash
+uv run python -m unittest discover -s tests -p test_submission_io.py
+```
+
+The rebuild contract tests and all three handover regression scripts also passed. Aggregate
+results and official evaluation outputs are kept locally under `cache/submission_repro_20261102/`;
+the CRLF diagnostic CSV is archived there. Generated submissions and reports remain gitignored.
+These runs reused prepared data and feature caches in the existing checkout. The final
+clean-clone replay at the freeze remains required.
