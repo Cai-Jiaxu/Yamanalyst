@@ -132,7 +132,7 @@ This is a genuine method negative on production, not integration bug.
 ## DoG production failure diagnostic (independent operator check)
 
 argmax flips: 199224 of 199319 frames (99.9%). Mean max P 0.891 -> mean max Q 0.623.
-Example frame 138769: P=[0.003, 0.005, 0.993] confident D -> Q=[0.526, 0.474, 0.001]
+One example frame: P=[0.003, 0.005, 0.993] confident D -> Q=[0.526, 0.474, 0.001]
 D destroyed, split H/A. DoG highpass over-sharpens confident production P.
 
 No-filter re-decode from cached P (R=all X): sha 4089da237ca8780a EXACT match.
