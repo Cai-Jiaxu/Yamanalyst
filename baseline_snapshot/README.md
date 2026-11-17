@@ -3,6 +3,10 @@
 The reference every experiment is compared against. Read-only evidence: nothing here changes
 `mtah/`, `run.py` or a prediction file.
 
+> **2026-11-17:** the submission is now `final_v6` (`final_v5` + one more pass of the stoppage gate,
+> docs/INVESTIGATION.md §27–§28). This folder still describes `final_v5`, the development baseline;
+> its scripts use `mtah.final.DECODER_V5`, so every number below is unchanged.
+
 | file | job |
 |---|---|
 | [OPERATING_INTERFACE.md](OPERATING_INTERFACE.md) | **developer handbook**: task, evaluator, `Bench` yardsticks, shipped config, how to write a featfn, the adoption gate, leak rules |

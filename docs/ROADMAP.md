@@ -15,7 +15,7 @@ same commit as the result. Each document has one job and no other document repea
 | [Yamanalyst.md](../Yamanalyst.md) | the technical document we submit (its numbers are copied from INVESTIGATION.md at the freeze) |
 | [challenge/](../challenge/) | the organiser's documents, unchanged |
 
-Last updated 2026-10-26.
+Last updated 2026-11-17.
 
 ## Where we stand
 
@@ -25,7 +25,10 @@ timing. Since then measured and not adopted: MBR decoding (§21), GRU/TCN refine
 The one large error left is short possessions; R17's touch-sequence features did not move it (§25).
 After `final_v5`, three more tracks (integrity review and decoder/training ideas, causal tracking
 features, audio) were measured and none adopted (§26). The team of four takes over from here:
-owners are in [HANDOVER.md](../HANDOVER.md).
+owners are in [HANDOVER.md](../HANDOVER.md). On 2026-11-02 the submission and the dev bench were
+reproduced on Windows (`baseline_snapshot/README.md`). On 2026-11-17 R20 was measured (§27) and its
+one-sided gate adopted: **the submission is `final_v6`** (§28; sha256 `349a7df54c8e0364…`, public
+0.747 / 0.923, bench 0.666). `final_v5` stays the locked development baseline.
 
 ## Dates
 
@@ -89,11 +92,11 @@ model-suggested boundaries for labellers, and its unmeasured timing figures.
 | R17 | **Short-possession recall**: touch-sequence and kick features (`feats.flight_block`, `full_plus5`) | 20–30% of true spells are < 2 s, recall ~0.19 (§20) | screen, then one refit | rule 7 screen; then bench rule, judged also per duration bin and spurious/100 | **done, not adopted** (§25): screen +0.040, full fit +0.001 (ext +0.009, masked −0.007); < 2 s recall unchanged at 0.186 |
 | R18 | **Calibrate the eye labels** (team task, by a person, never an LLM): label the public window by eye without looking at the GT, compare with the real GT | decides what `val_h2` can still judge (§20) | ~1 person-hour | — | open (Person 3) |
 | R19 | **Finish the diverse feature full fits** (`c_ballfree_cluster`, `c_melee_uncertainty`, `analysis/feat_track/feat_full_diverse.py`) | screened +0.017/+0.018, full fit started and interrupted (§26.2) | ~50 min each, caches half built | bench rule | open (Person 1); expect ≤ +0.005 |
-| R20 | **Stoppage-ball gate v2**: live spell inside a stoppage when players walk (< 1.3 m/s) and no player within 5 m of the ball → dead | Yamanalyst §6; §16: ATD tracks a returned ball during stoppages | hours, post-decode on cached P | does no harm on any yardstick, gains on public/masked/val stoppage spells | open (Person 1) |
+| R20 | **Stoppage-ball gate v2**: live spell inside a stoppage when players walk (< 1.3 m/s) and no player within 5 m of the ball → dead | Yamanalyst §6; §16: ATD tracks a returned ball during stoppages | hours, post-decode on cached P | does no harm on any yardstick, gains on public/masked/val stoppage spells | **done → `final_v6`** (§27–§28, `analysis/r20_gate.py`): as specified −0.0002 (the 5 m condition matches none of the remaining stoppage spells). A one-sided version of the shipped gate gives bench +0.0052, ext −0.0017, public +0.023; borderline on the bench (1 of 6 configs), adopted because it changes only 5 spells of the graded match and the 3 on labelled frames are all spurious |
 | R21 | **Whistle labels for audio**: a person marks referee whistles on 2–3 val windows, to give the tonal detector a precision/recall | §26.3: precision unknown, the one blocker that labels can lift | ~2 person-hours | — | open (Person 2) |
 | R22 | **Noise floor of the bench**: refit `final_v5` with 2–3 other `random_state`s and record bench/ext/masked spread | every "not adopted" since R8 lands within 0.003; the 0.005 margin is a heuristic (§26.1) | 2–3 refits | — | open (Person 3) |
 | R23 | **Privacy review before going public**: read every new committed file under `analysis/` and `baseline_snapshot/` for frame-level outputs | repo goes public at submission; research logs were written by several agents | ~1 h | nothing frame-level, no match-derived arrays | **done** 2026-10-27: committed research files read by a team member and cleared; recheck any file added later |
-| R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **draft**: `Yamanalyst.md` (refresh numbers at the freeze; export to PDF, `*.pdf` is gitignored); owner Person 4 |
+| R9 | **Technical document** (`<team_name>.md` → PDF), repo public, clean-clone check | SUBMISSION.md: approach, assets used and dropped, possession rules, limitations, reproduction | 1 day | due 15 Nov | **text final 2026-11-17**: `Yamanalyst.md` refreshed from INVESTIGATION (§26, §27 added); `bash scripts/build_pdf.sh <team_name>` exports the PDF (`*.pdf` is gitignored). Left: upload, and the fresh-clone `run.py` replay; owner Person 4 |
 
 Not on the list, and why: Smart Tagging fusion, `is_metrica`, X on boundaries, EM prior,
 IDSSE relabel, boundary snapping, re-ranking video candidates (REVIEWS.md); ball-free deep
@@ -102,7 +105,7 @@ shape model is, INVESTIGATION.md §0); more labelled matches (no ready source in
 PFF needs a personal sign-up, SkillCorner has no per-frame possession); duration priors (§11 and
 the sixth review: null).
 
-## Next steps (2026-10-26)
+## Next steps (written 2026-10-26; status 2026-11-17 below)
 
 Ordered milestones and owners: [HANDOVER.md §H](../HANDOVER.md#h-shared-milestones-and-completion-criteria).
 
@@ -110,6 +113,12 @@ Ordered milestones and owners: [HANDOVER.md §H](../HANDOVER.md#h-shared-milesto
 2. R18 and R21 (person-run labelling), R22 (noise floor), R19/R20 (last modelling candidates).
 3. 10 Nov registration; 14 Nov freeze: refresh Yamanalyst.md's numbers from INVESTIGATION.md, export the PDF.
 4. 15 Nov: privacy check of files added since R23, repo public, clean-clone `run.py` gives the README sha.
+
+Status on 17 Nov: item 1 done on macOS and Windows for `final_v5`; R20 done → `final_v6`, reproduced on macOS (§28); R18, R19, R21, R22 not done
+and no longer on the path to this submission. The repo is public and a fresh clone passes
+`bash scripts/check.sh` (§27.1). Still for a person to do: the last fresh-clone `run.py` replay
+(needs the data), the privacy read of anything committed after 27 Oct, exporting the PDF, and the
+form.
 
 ## Known issues and risks
 

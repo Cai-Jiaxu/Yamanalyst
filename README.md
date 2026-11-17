@@ -11,9 +11,11 @@ workstreams and the first-day checklist.
 | | what | public spellF1 / macroF1 | where |
 |---|---|---|---|
 | official baseline | starter's nearest player + ±50-frame vote (`baseline_smooth50`) | 0.326 / 0.621 | `starter/baseline.py`, `evaluation/results/baseline_*.csv` |
-| **best verified = current submission** | **`final_v5`**, sha256 `4089da237ca8780a…` | **0.723 / 0.910** (bench 0.661) | `run.py`, `mtah/final.py`; [docs/INVESTIGATION.md](docs/INVESTIGATION.md) §24; locked numbers in [baseline_snapshot/](baseline_snapshot/) |
+| previous submission, still the development baseline | `final_v5`, sha256 `4089da237ca8780a…` | 0.723 / 0.910 (bench 0.661) | [docs/INVESTIGATION.md](docs/INVESTIGATION.md) §24; locked numbers in [baseline_snapshot/](baseline_snapshot/) |
+| **current submission** | **`final_v6`** = `final_v5` + one-sided stoppage gate, sha256 `349a7df54c8e0364…` | **0.747 / 0.923** (bench 0.666) | `run.py`, `mtah/final.py`; [docs/INVESTIGATION.md](docs/INVESTIGATION.md) §27–§28 |
 
-Nothing tried since `final_v5` has beaten it (§26).
+`final_v6` changes 5 spells (299 frames) of `final_v5`; nothing else tried since `final_v5` has
+beaten it (§26, §27).
 
 ## Documents
 
@@ -25,9 +27,9 @@ Nothing tried since `final_v5` has beaten it (§26).
 | ours | [docs/REVIEWS.md](docs/REVIEWS.md) | verdicts on outside advice |
 | ours | [HANDOVER.md](HANDOVER.md) | onboarding, the four workstreams and their owners, interfaces, milestones |
 | ours | [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) | one-line index of every experiment (adopted and not), pointing to its record |
-| ours | [baseline_snapshot/](baseline_snapshot/) | locked `final_v5` numbers and the developer interface for experiments |
+| ours | [baseline_snapshot/](baseline_snapshot/) | locked `final_v5` numbers (the development baseline) and the developer interface for experiments |
 | ours | [docs/CLEANUP_REPORT.md](docs/CLEANUP_REPORT.md) | what the 2026-10-26 cleanup moved or archived, and which checks were run |
-| ours | [Yamanalyst.md](Yamanalyst.md) | the technical document we submit (export to PDF) |
+| ours | [Yamanalyst.md](Yamanalyst.md) | the technical document we submit; `bash scripts/build_pdf.sh <team_name>` exports `<team_name>.pdf` |
 
 ## Data rules (read first)
 
@@ -61,16 +63,38 @@ uv sync                      # behind a corporate TLS proxy: UV_SYSTEM_CERTS=1 u
 
 ```bash
 uv run python run.py                      # -> evaluation/results/final.csv, validated
-uv run python run.py --name final_v5      # the same, under the submission's name
+uv run python run.py --name final_v6      # the same, under the submission's name
 uv run python evaluation/run_evaluation.py --no-detail     # public-window scoreboard
 ```
 
-`run.py` is deterministic: it reproduces `final_v5` byte for byte (sha256 `4089da237ca8780a…`).
-`final_v4` was `0bc6e8c0…`, `final_v3` `3b01921e…`, `final_v2` `59e7b27f…`.
+`run.py` is deterministic: it reproduces `final_v6` byte for byte (sha256
+`349a7df54c8e0364e91e060b6279a2e7236bf5bfefc813e0bb63795b2e640ea3`). `final_v5` was `4089da23…`
+(set `DECODER = DECODER_V5` in `mtah/final.py` to regenerate it), `final_v4` was `0bc6e8c0…`, `final_v3` `3b01921e…`, `final_v2` `59e7b27f…`.
 `final_v2` differs from `final_v1` (`34f6c958…`) only on the 2nd half's 2,934 pre-kickoff frames
 (docs/INVESTIGATION.md §10).
 The first run builds caches (about 30–60 min); later runs take about 11 min. Older methods are
 still available with `--method rules|fused_own|fused_ext`.
+
+## The files for the form
+
+```bash
+uv run python run.py --name final_v6                      # sha256 349a7df54c8e0364…
+mkdir -p submission && cp evaluation/results/final_v6.csv submission/<team_name>.csv
+bash scripts/build_pdf.sh <team_name> && mv <team_name>.pdf submission/
+uv run python evaluation/validate_submission.py submission/<team_name>.csv
+```
+
+`submission/` is gitignored: the CSV is a full-match label file and must not be committed.
+
+## Checks that need no data
+
+```bash
+bash scripts/check.sh        # compiles every tracked .py, then all synthetic tests
+```
+
+`tests/test_decode.py` pins the shipped decoder settings and the stoppage gate, and
+`tests/test_submission_io.py` the CSV bytes, so a change that would move the submission's sha
+fails a test before it reaches `run.py`.
 
 ## How the pipeline works
 
@@ -85,7 +109,7 @@ raw ATD ──► mtah/data.py      cache: players, ball, homography, camera cen
                               plus mirrored and extra-noise copies
         ──► mtah/decode.py    3-state Viterbi: switch costs and a 1-s minimum dead ball
                               (+ dead ball before the 2nd-half kickoff, mtah/kickoff.py,
-                              + stoppage gate for short live blips between dead balls)
+                              + stoppage gate for short live blips next to a dead ball)
         ──► evaluation/results/final.csv
 ```
 
@@ -142,7 +166,8 @@ the homography as automatic labels, then detects on the missing frames.
 | `work/labels/` | person-made validation labels (`val_h2_*.csv`, `ball_probe_300.csv`); gitignored |
 | `_archive/` | local, gitignored archive of duplicates and superseded material (docs/CLEANUP_REPORT.md) |
 | `colab/` | GPU notebook |
-| `scripts/` | downloads (external data, model weights), Colab bundle |
+| `scripts/` | downloads (external data, model weights), Colab bundle, `check.sh` (all data-free checks) |
+| `tests/` | synthetic tests of the shipped path: CSV bytes, decoder post-processing, shipped config |
 | `evaluation/` | the official scorer, validator and public ground truth (unchanged from the starter) |
 | `challenge/` | the organiser's documents, unchanged |
 | `docs/` | our roadmap, evidence and review verdicts |

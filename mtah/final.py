@@ -34,8 +34,14 @@ MODEL = {"max_iter": 600}
 # final_v4 added stop_gate (short live blips inside stoppages -> dead ball; section 19), kept.
 # final_v5 = final_v2 decoder + stop_gate: bench 0.636 -> 0.661, ext 0.589 -> 0.616,
 # public 0.667 -> 0.697 on the fold models (analysis/rev_v4.py).
-DECODER = {"w_shape": 0.75, "cost_dead": 12.0, "cost_team": 12.0, "min_dead": 25,
-           "w_bound": 0.0, "kickoff": "half", "use_rules": False, "stop_gate": 100}
+# final_v6 = final_v5 + stop_gate_sides=1: after the shipped gate, a second pass also turns a short
+# slow live spell with dead ball on ONE side into dead ball (analysis/r20_gate.py, INVESTIGATION.md
+# section 27): bench 0.6612 -> 0.6663, ext 0.6163 -> 0.6146, public 0.697 -> 0.720 on the fold
+# models; 5 spells change on the full match, the 3 that fall on labelled frames are all spurious.
+DECODER_V5 = {"w_shape": 0.75, "cost_dead": 12.0, "cost_team": 12.0, "min_dead": 25,
+              "w_bound": 0.0, "kickoff": "half", "use_rules": False, "stop_gate": 100}
+DECODER = dict(DECODER_V5, stop_gate_sides=1)
+# DECODER_V5 is the locked development baseline of baseline_snapshot/ (bench 0.6612).
 FEATFN = "full_plus3"
 SEED = 0
 

@@ -928,3 +928,128 @@ on our own match. Details: `analysis/audio_sources/docs/FINAL_SOURCE_SYNTHESIS.m
 
 `run.py` reproduced `final_v5` byte for byte on 2026-10-25 (twice) and 2026-10-26
 (`baseline_snapshot/fresh_rebuild.log`, sha256 `4089da237ca8780a…`, public 0.722581 / 0.909848).
+
+## 27. R20: stoppage-ball gate v2 → `final_v6` (`analysis/r20_gate.py`, 2026-11-17)
+
+Post-decode only, on the cached fold probabilities `cache/P_R1.npz`. The script first reproduces
+the locked baseline to 1e-9 (bench 0.6611595515) with a low-memory harness (no feature matrices,
+< 1 GB), then scores each gate on every yardstick. Shipped gate for reference (§19): a live spell
+of ≤ 100 frames with dead ball on **both** sides while the players walk (< 1.3 m/s) becomes dead
+ball.
+
+**What is left to remove** (`--diagnose`). Predicted live spells after the shipped gate; spurious =
+no same-team overlap with any true possession:
+
+| yardstick | predicted spells | spurious, inside true dead ball | spurious, other | of the spurious: ≤ 100 frames |
+|---|---|---|---|---|
+| ext (9 matches) | 2,639 | 49 | 86 | 114 of 135 |
+| masked (16 seeds) | 211 | 8 | 0 | 8 of 8 |
+| public | 14 | 1 | 0 | 1 of 1 |
+| `val_h2` (eye labels) | 61 | 5 | 7 | 11 of 12 |
+
+R20's premise does not hold for what remains: "players walk and no player within 5 m of the ball
+on more than half of the spell's ball-seen frames" matches **0** of the spurious-in-dead-ball
+spells on every yardstick. Of §16's two public-window blips the shipped gate removes one; the one
+left (the same spell appears in 8 of the 16 masked seeds) is slow but has dead ball on one side
+only, and players come within 5 m of the ball during it.
+
+**Six configs, fixed before scoring, all reported** (rule 2). Each is the shipped gate plus one
+more pass. Δ against `final_v5` fold models:
+
+| config | bench | ext | masked | public | `val_h2` | spurious: ext /100 · masked /seed · public · val |
+|---|---|---|---|---|---|---|
+| `final_v5` (shipped gate) | 0.6612 | 0.6163 | 0.7061 | 0.6968 | 0.5627 | 3.62 · 0.50 · 1 · 12 |
+| no gate | −0.0054 | +0.0004 | −0.0112 | −0.0218 | −0.0047 | 3.62 · 1.00 · 2 · 13 |
+| G1 **R20 as specified**: 1+ side, ≤ 250, pace < 1.3, no player within 5 m | −0.0002 | −0.0004 | 0 | 0 | +0.0048 | 3.59 · 0.50 · 1 · 11 |
+| G2 1+ side, ≤ 100, pace < 1.3 (the shipped constants, one-sided) | **+0.0052** | −0.0017 | +0.0120 | +0.0232 | +0.0097 | 3.37 · 0.00 · 0 · 10 |
+| G3 1+ side, ≤ 100, pace < 1.0 | −0.0002 | −0.0003 | 0 | 0 | 0 | 3.62 · 0.50 · 1 · 12 |
+| G4 2 sides, ≤ 250, pace < 1.3 | −0.0001 | −0.0002 | 0 | 0 | 0 | 3.59 · 0.50 · 1 · 12 |
+| G5 2 sides, ≤ 100, pace < 1.6 | −0.0004 | −0.0008 | 0 | 0 | 0 | 3.45 · 0.50 · 1 · 12 |
+| G6 2 sides, ≤ 100, no player within 5 m, any pace | −0.0001 | −0.0003 | 0 | 0 | +0.0048 | 3.62 · 0.50 · 1 · 11 |
+
+**G2 on the delivered full-fit file** (the gate applied to `final_v5.csv`):
+
+| file | public spellF1 / macroF1 | `val_h2` spellF1 / macroF1 | val spurious | live spells, full match |
+|---|---|---|---|---|
+| `final_v5` | 0.722581 / 0.909848 | 0.5815 / 0.8593 | 13 of 62 | 269 |
+| `final_v5` + G2 | 0.746667 / 0.922535 | 0.5915 / 0.8611 | 11 of 60 | 264 |
+
+G2 relabels **5 spells (299 frames, 0.19% of graded frames)** on the whole match: 1 in the public
+window (spurious on the real GT), 2 in the val windows (both spurious on the eye labels, a
+timing-free judgement, so `val_h2` may make it; dead-ball F1 0.939 and team accuracy 0.891 → 0.893
+unchanged), 2 where we have no labels.
+
+**Verdict: R20 as specified is null (G1). G2 is adopted → `final_v6` (§28).** The case against,
+and why it did not decide:
+
+- G2 is 1 of 6 configs and clears rule 1 by 0.0002 (bench +0.0052, ext −0.0017); rule 2 treats a
+  borderline win after several tries as a "no" when the bench is all we have;
+- its masked and public gains are **one spell** of the public window, counted once in `public` and
+  in 8 of the 16 masked seeds. `--sensitivity` shows a step, not a slope: the gain appears whole
+  between pace 1.2 and 1.3 and between 50 and 75 frames, and is flat from 75 to 150 frames;
+- on ext it removes 9 spurious spells and 29 that overlap a true possession (IDSSE −0.0026,
+  Metrica +0.0017), and the ext cost grows with the pace threshold (−0.0064 at 1.5 m/s). About a
+  third of those 29 were matched possessions, judging by the size of the ext loss.
+
+What decided it is that here the bench is not all we have: the change to the delivered file is
+small enough to count. G2 relabels 5 spells of the match that is actually graded. Three of them
+lie on frames we have labels for and all three are spurious, so removing them is a gain on the
+private ground truth whatever the bench says (the public one certainly; the two val ones on a
+timing-free judgement). Only the other two are a bet. With N_gt + N_pred ≈ 630 on the full match
+(N_pred 264; N_gt ≈ 360 if the public window's 17 per 5 minutes holds, an estimate),
+a spurious spell removed is worth about +0.001 spellF1 and a matched possession removed about
+−0.002: +0.003 from the three, and between +0.002 (both spurious) and −0.004 (both matched) from
+the two, about −0.0005 if they behave like the external matches. Expected gain ≈ +0.003, worst
+case ≈ −0.001, and macroF1 (the tie-break) rises with every stoppage frame returned to `D`. No
+constant was tuned: G2 uses the shipped gate's 100 frames and 1.3 m/s and changes only "both
+sides" to "at least one".
+
+This is a narrower claim than "G2 is a better decoder": on other matches the evidence is the ext
+column, which is slightly negative. It is the better file for this match.
+
+Also tried on top of G2, three values fixed in advance, none adopted: absorbing possessions shorter
+than 25 / 50 / 75 frames flanked by one team (`min_poss`, `--min-poss`): bench −0.001 / −0.015 /
+−0.079 against G2 (ext −0.001 / −0.024 / −0.062).
+
+Variants tried in this section: 6 gate configs, 3 `min_poss` values, and a 25-cell sensitivity
+grid that was not used to pick.
+
+### 27.1 Checks on 2026-11-17 (no model change)
+
+- `evaluation/results/final_v5.csv` sha256 `4089da237ca8780a…`, validator OK, official evaluator
+  0.722581 / 0.909848; with `stop_gate_sides` at its default (2) `mtah/decode.py` gives the locked
+  bench to 1e-9, so `final_v5` and every earlier number remain reproducible (`final.DECODER_V5`).
+- `bash scripts/check.sh` (new): all tracked Python compiles; `tests/` (11 tests), the rebuild
+  contract tests and the three handover test scripts pass. Run on Linux aarch64, Python 3.11.17,
+  with the pinned numpy/pandas/scipy/scikit-learn — a third platform after macOS and Windows.
+- A fresh clone of the public repository compiles, passes the data-free tests, `uv lock --check`
+  passes, and `run.py` without data stops with the "data is gated" message. The full `run.py`
+  replay from a fresh clone was **not** run here (it needs the data and ~1 h).
+- Tracked files: no CSV other than the four organiser baselines and the public GT, no
+  npz/joblib/audio/video; 0 broken relative links in our Markdown files.
+
+## 28. `final_v6`, the delivered file (2026-11-17)
+
+`final_v6` = `final_v5` + the one-sided pass of the stoppage gate (`mtah/final.py`:
+`DECODER = dict(DECODER_V5, stop_gate_sides=1)`). Same features, same trees, same Viterbi settings.
+
+| | public spellF1 / macroF1 | bench (ext / masked), fold models | `val_h2` spellF1 / macroF1 | live spells, full match |
+|---|---|---|---|---|
+| `final_v5` | 0.722581 / 0.909848 | 0.6612 (0.6163 / 0.7061) | 0.5815 / 0.8593 | 269 |
+| **`final_v6`** | **0.746667 / 0.922535** | **0.6663** (0.6146 / 0.7180) | 0.5915 / 0.8611 | 264 |
+
+`val_h2` here is scored over the four windows pooled; as the mean of the four windows (the 0.593
+of §24) it goes 0.593 → 0.604.
+
+The two files differ on 299 frames (5 spells), all changed from a team to `D`.
+
+Reproduction: `run.py --name final_v6` (full refit, warm feature caches, ~9 min) on the original
+Mac gives sha256 `349a7df54c8e0364e91e060b6279a2e7236bf5bfefc813e0bb63795b2e640ea3`, validator OK,
+199,319 rows. The same hash had been predicted beforehand on a different platform (Linux aarch64)
+by applying the gate to `final_v5.csv`, since the gate is the decoder's last step. A second full
+refit (`--name final_v6_repro`) gives the same bytes. Logs: `cache/submission_final_v6/` (local).
+The smallest distance of any eligible spell's mean pace from the 1.3 m/s threshold is 0.008 m/s, far
+above floating-point differences between platforms. Not re-run on Windows.
+
+The locked development baseline stays `final_v5` (`baseline_snapshot/`, `final.DECODER_V5`,
+bench 0.6612): every earlier section's numbers are against it.

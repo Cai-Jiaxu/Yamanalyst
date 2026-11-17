@@ -34,21 +34,28 @@ PARAMS = {
     "snap_r": 0,          # frames; >0 moves each boundary to the nearest physical event (snap())
     "stop_gate": 0,       # frames; >0: a live spell this short with dead ball on both sides while
                           # the players walk becomes dead ball (stop_gate())
+    "stop_gate_sides": 2,  # 2 = the final_v5 gate. 1 (final_v6) adds a second pass that also
+                          # accepts dead ball on ONE side only (R20, INVESTIGATION.md section 27)
 }
 
 
-def stop_gate(labels, f, max_len, slow=1.3):
+def stop_gate(labels, f, max_len, slow=1.3, sides=2):
     """A live spell of at most max_len frames between two dead spells, with the players' mean
     pace under `slow` m/s, is the tracker following a ball returned or placed during a stoppage
-    (INVESTIGATION.md section 16), not a possession: it becomes dead ball."""
+    (INVESTIGATION.md section 16), not a possession: it becomes dead ball.
+
+    sides=2 (default, final_v5): dead ball on BOTH sides, spells judged in order, so a
+    spell just relabelled counts as dead ball for the next one. sides=1 (final_v6, section 27): dead
+    ball on at least one side, every spell judged against the labels as passed in."""
     from scipy.ndimage import uniform_filter1d
     pace = uniform_filter1d(np.nan_to_num((f["sh"] + f["sa"]) / 2), 25)
     out = labels.copy()
+    ref = out if sides >= 2 else labels
     b = np.concatenate(([0], np.flatnonzero(out[1:] != out[:-1]) + 1, [len(out)]))
     for i in range(1, len(b) - 2):
         a, z = b[i], b[i + 1]
-        if out[a] in "HA" and out[a - 1] == "D" and out[z] == "D" and z - a <= max_len \
-                and pace[a:z].mean() < slow:
+        if ref[a] in "HA" and (ref[a - 1] == "D") + (ref[z] == "D") >= sides \
+                and z - a <= max_len and pace[a:z].mean() < slow:
             out[a:z] = "D"
     return out
 
@@ -232,4 +239,6 @@ def decode(m, rule_labels, P_shape, seen, p=PARAMS, f=None, B=None):
         out = snap(out, f, p["snap_r"], m.fps)
     if p.get("stop_gate", 0) and f is not None:
         out = stop_gate(out, f, int(p["stop_gate"]))
+        if int(p.get("stop_gate_sides", 2)) == 1:
+            out = stop_gate(out, f, int(p["stop_gate"]), sides=1)
     return out

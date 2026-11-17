@@ -1,7 +1,7 @@
 """Read-only reconstruction of the shipped final_v5 dev bench.
 
 Loads the cached fold probabilities P_R1.npz (produced by the shipped pipeline,
-no refit) and scores them with the EXACT decoder params in mtah/final.py DECODER.
+no refit) and scores them with the EXACT final_v5 decoder params, mtah/final.py DECODER_V5.
 It changes nothing: no new features, no retraining, no decoder tuning.
 
 Output: baseline_snapshot/baseline_metrics.json (aggregate numbers only).
@@ -21,7 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from mtah.bench import Bench  # noqa: E402
-from mtah.final import DECODER, FEATFN, MODEL, SEED  # noqa: E402
+from mtah.final import DECODER_V5 as DECODER, FEATFN, MODEL, SEED  # noqa: E402  (locked final_v5)
 
 CACHE_P = os.path.join(ROOT, "cache", "P_R1.npz")
 OUT = os.path.join(ROOT, "baseline_snapshot", "baseline_metrics.json")

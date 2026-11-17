@@ -1,8 +1,8 @@
 # Yamanalyst — MTAH 2027 Phase 1: ball possession from tracking
 
-*Technical document (challenge/SUBMISSION.md §3). Draft of 2026-10-25, for submission `final_v5`.
-Its numbers are copied from docs/INVESTIGATION.md (the source of truth) and refreshed at the code
-freeze (docs/ROADMAP.md). Export to `Yamanalyst.pdf` for the form.*
+*Technical document (challenge/SUBMISSION.md §3) for submission `final_v6`, 17 November 2026.
+Repository: <https://github.com/Cai-Jiaxu/Yamanalyst>. Every number here is copied from
+docs/INVESTIGATION.md in that repository, which maps each one to the script that produced it.*
 
 ## 1. The approach in one paragraph
 
@@ -49,6 +49,23 @@ refiner (bidirectional GRU or dilated TCN) over the trees' probabilities: +0.011
 matches but −0.02–0.03 on our own masked window, because it learns the external sources' label conventions. Touch-sequence and kick features aimed at
 short possessions: +0.040 on the fast screen, +0.001 once the full training recipe is used.
 
+After `final_v5` we measured four more groups of ideas against it; one small change came out of
+them (the last bullet):
+
+- **Decoder and training variants**: semi-Markov durations (0.657 against 0.661), extra switch cost
+  in duels (0.660), learned transition heads (0.657–0.658), duel-weighted training (0.658), a hard
+  physical "control latch" (0.303), logit sharpening (benchmark up to 0.667 but public down to
+  0.686 on the full fit).
+- **Five past-only tracking feature blocks** (carrier tightness, margin dwell and others): +0.016
+  to +0.031 on the fast screen, 0.650–0.659 with the full recipe. Four times now a screen gain has
+  vanished once mirrors and noise copies are in training.
+- **Audio**: the video's sound track is aligned and a tonal whistle detector fires within 1.4 s of
+  the three known whistles, but forcing dead ball at detected whistles does nothing or hurts
+  (public 0.700), and the external training matches have no audio to learn from.
+- **Stoppage-gate variants** (§5): gating on "players walk and nobody within 5 m of the ball"
+  removes none of the remaining stoppage errors; longer or looser gates lose slightly. The one
+  variant that helped is the last step of `final_v6`.
+
 ## 4. The possession rules we implemented
 
 These follow how the ground truth is built (checked on the public window and on external data):
@@ -61,6 +78,9 @@ These follow how the ground truth is built (checked on the public window and on 
 - **Dead ball** starts when the ball goes out, when it sits still for ~1.5 s with no one on it,
   when both teams walk for 4 s, or during a long missing-ball stretch with slow players. It ends
   on the frame the ball moves faster than 3 m/s (the restart kick). Dead spells last at least 1 s.
+- **Stoppage blips**: a live spell of at most 4 s that touches a dead-ball spell while both teams
+  walk (mean pace under 1.3 m/s) is the tracker following a ball being returned or placed, and
+  becomes dead ball.
 - **Half starts**: everything before a half's first kickoff is dead ball. The kickoff is detected
   from the formation (both teams in their own halves, standing) and the ball leaving the centre
   spot. In our match the 2nd half is graded 2,934 frames before its kickoff.
@@ -77,13 +97,26 @@ alive↔dead switch.
 | `final_v2` | 0.700 | 0.898 | 0.656 | 0.577 (lowIoU 0.722, teamAcc 0.891, deadF1 0.938, collarMF1 0.895) |
 | `final_v3`: + rule labels voting in the decoder | 0.653 | 0.904 | 0.632 | 0.627 (macroF1 0.873) |
 | `final_v4`: + stoppage gate | 0.653 | 0.904 | 0.636 | 0.632 (macroF1 0.875) |
-| **`final_v5` (submitted)**: `final_v2` decoder + stoppage gate | **0.723** | **0.910** | **0.661** | 0.593 |
+| `final_v5`: `final_v2` decoder + stoppage gate | 0.723 | 0.910 | 0.661 | 0.593 |
+| **`final_v6` (submitted)**: + stoppage gate with dead ball on one side only | **0.747** | **0.923** | **0.666** | 0.604 |
 
-Public columns are the delivered full-fit files; the benchmark uses the fold models. `final_v3`/`v4`
+Public columns are the delivered full-fit files; the benchmark uses the fold models (three models,
+each scored on external matches it never saw). The benchmark is the mean of the external score and
+the masked public-window score; we adopt a change only if it rises by at least 0.005 with neither
+half falling by more than 0.005, and we record every attempt. `final_v3`/`v4`
 were chosen on the hand-labelled 2nd half; `final_v5` reverses that because those labels reward the
 rules' timing (§2): on the benchmark's external matches `final_v5` scores 0.616 against 0.589, on the
 masked window 0.706 against 0.683. Mid-possession (> 3 s from a change) its team error on the 2nd-half
 windows is 4.4%, the same as `final_v4`'s 4.3%.
+
+`final_v6` differs from `final_v5` on 5 spells (299 frames, 0.19% of graded frames), all turned
+into dead ball. `final_v5`'s gate removed a live spell of at most 4 s between two dead-ball spells
+while the players walk (mean pace under 1.3 m/s); `final_v6` runs a second pass that accepts dead
+ball on one side only. On the benchmark this is a marginal call: +0.005 overall, −0.002 on the
+external matches, and it was the one success among six gate variants. We adopted it because the
+change to the delivered file is small enough to inspect: of the 5 spells, the 3 that fall on
+frames we have labels for (1 in the public window, 2 in our hand-labelled windows) all have no
+true possession of that team under them. The other 2 we cannot check.
 
 Remaining errors on external matches, per 100 true possessions: missed 22, boundary drift 19,
 merged 11, spurious 3.6, split 2.1. A large part of "missed" is IDSSE's very brief possessions,
@@ -102,8 +135,15 @@ which our ground truth's convention would not count.
   (`O`), so integrating video detections requires a dedicated channel trained with simulated
   stoppage false positives and clumpy tracklets.
 
-With more time: a dedicated video-ball channel trained on simulated stoppage/tracklet noise, and
-stoppage-ball gating when player pace is below 1.3 m/s and no player is within 5 m of the ball.
+- **Short possessions**: 20–30% of true possessions on the external matches last under 2 s and we
+  recover 19% of them; touch-sequence features did not change that.
+- **Our yardsticks are small or foreign**: 17 real possessions on our own match, ~3,000 on matches
+  from other leagues and trackers with their own labelling habits. We never measured the
+  benchmark's run-to-run noise, so the 0.005 adoption margin is a working rule, not a test.
+
+With more time: a dedicated video-ball channel trained on simulated stoppage and tracklet noise;
+labelled referee whistles to test audio as a dead-ball cue; a second labelled match from the same
+tracker, which would do more than any model change above.
 
 ## 7. Reproduction
 
@@ -111,9 +151,16 @@ stoppage-ball gating when player pace is below 1.3 m/s and no player is within 5
 uv sync                                   # Python 3.11 via uv
 # match data into data/ (DATA.md); external data:
 bash scripts/download_external.sh && uv run python -m mtah.external
-uv run python run.py --name final_v5      # -> evaluation/results/final_v5.csv
-python evaluation/validate_submission.py evaluation/results/final_v5.csv
+uv run python run.py --name final_v6      # -> evaluation/results/final_v6.csv
+python evaluation/validate_submission.py evaluation/results/final_v6.csv
 ```
 
-Deterministic: the output's sha256 starts `4089da23`. First run ~30–60 min (caches), then ~11 min.
-Every number above comes from a script in `analysis/` (docs/INVESTIGATION.md maps each to its script).
+Deterministic: the output's sha256 is
+`349a7df54c8e0364e91e060b6279a2e7236bf5bfefc813e0bb63795b2e640ea3`; the submitted CSV is this
+file under our team name. Two independent full refits on macOS (Apple silicon) give these bytes.
+`final_v5` (the same pipeline without the last gate pass, sha256
+`4089da23…`) was reproduced byte for byte on macOS and in two independent full refits on Windows. First run
+~30–60 min (caches), then ~11 min. `bash scripts/check.sh` runs the tests that need no data,
+including ones that pin the decoder settings and the CSV bytes. Dependencies are pinned in
+`pyproject.toml` and `uv.lock`. Every number above comes from a script in `analysis/`
+(docs/INVESTIGATION.md maps each to its script).

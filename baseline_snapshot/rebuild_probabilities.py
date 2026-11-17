@@ -96,7 +96,7 @@ def main(argv=None):
 
     reference = json.loads(REFERENCE.read_text(encoding="utf-8"))
     if (final.FEATFN != reference["featfn"] or final.MODEL != reference["model"]
-            or final.SEED != reference["seed"] or final.DECODER != reference["decoder"]):
+            or final.SEED != reference["seed"] or final.DECODER_V5 != reference["decoder"]):
         parser.error("shipped configuration differs from the locked baseline; review before rebuilding")
     started = time.time()
     print("Rebuilding baseline fold probabilities; no existing fold-model cache will be reused.",
@@ -109,7 +109,7 @@ def main(argv=None):
     # key=None deliberately forces fresh folds, avoiding unrelated/stale joblib models.
     probabilities = bench.probs(featfn, final.MODEL, extra=extra, key=None)
     validate_probabilities(probabilities, bench)
-    result = bench.score("P_R1 rebuild", probabilities, dec_params=final.DECODER,
+    result = bench.score("P_R1 rebuild", probabilities, dec_params=final.DECODER_V5,
                          use_rules=False, t0=started)
     comparison, matches = compare_metrics(result, reference)
     output.parent.mkdir(parents=True, exist_ok=True)

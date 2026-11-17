@@ -88,3 +88,6 @@ analysis/**/score_out/reports/
 *.zip
 # YOLO prediction dumps.
 runs/
+
+# The three files uploaded on the form (<team_name>.csv is a full-match label file). Never commit.
+submission/

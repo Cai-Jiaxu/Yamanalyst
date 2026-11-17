@@ -6,6 +6,14 @@ it links to it. If this file and a linked record disagree, the record wins
 ([docs/INVESTIGATION.md](docs/INVESTIGATION.md) for numbers, [docs/ROADMAP.md](docs/ROADMAP.md) for
 open-item status) — then fix this file.
 
+**Status 2026-11-17 (deadline day).** The submission is now **`final_v6`** = `final_v5` + a one-sided
+pass of the stoppage gate (INVESTIGATION §27–§28): sha256 `349a7df54c8e0364…`, public 0.7467 /
+0.9225, bench 0.6663; 5 spells differ from `final_v5`. Everything below describes `final_v5`, which
+remains the locked development baseline (`final.DECODER_V5`). Since this was written:
+`final_v5` and the dev bench reproduced on Windows (2 Nov, `baseline_snapshot/README.md`); `bash scripts/check.sh` runs every data-free
+check. R18, R19, R21 and R22 were not done. Left for a person: the final fresh-clone `run.py`
+replay, the privacy read of files committed after 27 Oct, the PDF export and the form (§H, M6).
+
 **Contents.** [A. Overview](#a-project-overview) · [B. Current state](#b-current-state-of-the-project) ·
 [C. Findings](#c-completed-work-and-important-findings) · [D. Workstreams](#d-four-workstreams) ·
 [E. Why this split](#e-how-the-split-was-refined) · [F. Tasks](#f-task-breakdown-and-priorities) ·
@@ -177,13 +185,16 @@ broadcast ball, Smart Tagging labels, audio D-relabel/nudge. Numbers: [docs/EXPE
   so `val_h2` was not rechecked. The committed reference metrics were preserved.
   See [rebuild instructions](baseline_snapshot/README.md#rebuild-the-missing-probability-cache).
 - The research folders `analysis/autonomous_research/`, `analysis/feat_track/`,
-  `analysis/audio_sources/`, `baseline_snapshot/` and this documentation are **not committed yet**.
+  `analysis/audio_sources/`, `baseline_snapshot/` and this documentation were committed on
+  2026-10-26/27 after the privacy review (R23).
 
 ### C.4 Open questions (hypotheses, not findings)
 
 - Does any feature help possessions < 2 s? (R17 and the feat track say not from tracking alone.)
 - Is a 0.005 bench gain outside run-to-run noise? Never measured (R22).
-- Would a stoppage gate keyed on player pace and ball distance remove more spurious spells? (R20)
+- ~~Would a stoppage gate keyed on player pace and ball distance remove more spurious spells? (R20)~~
+  Answered 2026-11-17: the distance condition matches none of the remaining stoppage spells; a
+  one-sided version of the shipped gate removes a few and became `final_v6` (INVESTIGATION §27–§28).
 - Can referee whistles mark dead-ball boundaries reliably? (R21)
 - Do future-context features (the shipped ±10 s windows) raise any eligibility concern? The
   challenge docs neither grant nor forbid them; the offline task allows them in practice
@@ -237,7 +248,8 @@ Each task: objective · files · done so far · remaining · inputs · deliverab
 
 **Next**
 
-- **P1-N1 R20 stoppage-ball gate v2.** Objective: remove spurious live spells when a ball moves in
+- **P1-N1 R20 stoppage-ball gate v2 — done 2026-11-17 → `final_v6`** (`analysis/r20_gate.py`,
+  INVESTIGATION §27–§28). Original brief: Objective: remove spurious live spells when a ball moves in
   a stoppage (§16: ball 7.8–12.4 m/s while players walk 1.1–1.3 m/s, > 5 m away). Files:
   `mtah/decode.py` (`stop_gate`), `analysis/r11_stack.py` (where the first gate was measured),
   `analysis/yardsticks.py`. Done: v1 gate in `final_v5`. Remaining: a post-decode rule using pace
@@ -408,7 +420,9 @@ that 9 matches are 2 datasets).
 config = new key. Every run, kept or not, gets a line in the track's JSONL/registry and an
 INVESTIGATION entry; verdicts go into EXPERIMENTS.md and ROADMAP.
 
-**G.4 Before merging.** `python -m py_compile` on changed files; the unit tests
+**G.4 Before merging.** `bash scripts/check.sh` runs all of the following without match data:
+`python -m py_compile` on every tracked file; `tests/` (submission bytes, decoder post-processing,
+shipped config); the rebuild contract tests; the unit tests
 (`analysis/feat_track/test_feat_candidates.py`,
 `analysis/autonomous_research/experiments/sequence/test_semimarkov.py`,
 `analysis/autonomous_research/experiments/holdout/test_class_order.py`); if the shipped path

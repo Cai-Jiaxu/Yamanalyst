@@ -3,12 +3,12 @@
 One line per experiment, so nobody repeats one. This file is an **index only**: the numbers and
 scripts live in the record it points to, and a new result goes into that record first
 ([INVESTIGATION.md](INVESTIGATION.md) for anything judged on the bench, plus the track's own
-registry if it has one). Status of open work: [ROADMAP.md](ROADMAP.md). Last updated 2026-10-26.
+registry if it has one). Status of open work: [ROADMAP.md](ROADMAP.md). Last updated 2026-11-17.
 
 Yardsticks: **bench** = mean of ext and masked spellF1 (`mtah/bench.py`); adopt only if bench
 rises ≥ 0.005 and neither ext nor masked falls > 0.005 (ROADMAP rule 1). Locked baseline:
 `final_v5` fold models, bench 0.6612 / ext 0.6163 / masked 0.7061
-([baseline_snapshot/](../baseline_snapshot/)).
+([baseline_snapshot/](../baseline_snapshot/)). The submission is `final_v6` (§28).
 
 ## Where the records are
 
@@ -16,12 +16,13 @@ rises ≥ 0.005 and neither ext nor masked falls > 0.005 (ROADMAP rule 1). Locke
 |---|---|---|
 | [INVESTIGATION.md](INVESTIGATION.md) §0–§25 | everything up to `final_v5` (2026-10-21 → 25) | prose + tables, script per section |
 | [INVESTIGATION.md](INVESTIGATION.md) §26 | summary of the three post-`final_v5` tracks | tables |
+| [INVESTIGATION.md](INVESTIGATION.md) §27 | R20 stoppage gate v2 and the 2026-11-17 checks | tables, `analysis/r20_gate.py` |
 | [analysis/autonomous_research/](../analysis/autonomous_research/) | integrity review; decoder, sequence, reweighting, latch, holdout | `REGISTRY.json`, `RESEARCH_LOG.md`, per-experiment `REPORT.md` / `LOG.md` |
 | [analysis/feat_track/](../analysis/feat_track/) | 5 causal tracking feature blocks | `README.md`, `REGISTRY.json`, `*_results.jsonl` |
 | [analysis/audio_sources/](../analysis/audio_sources/) | audio track, whistle detector, PANNs, external corpora | `docs/*.md`, `logs/` |
 | [REVIEWS.md](REVIEWS.md) | verdicts on outside advice | table |
 
-## Adopted (in `final_v5`)
+## Adopted (in `final_v6`; all but the last row were already in `final_v5`)
 
 | what | effect | record |
 |---|---|---|
@@ -34,6 +35,7 @@ rises ≥ 0.005 and neither ext nor masked falls > 0.005 (ROADMAP rule 1). Locke
 | Dead ball before each half's first kickoff (R1) | bench unchanged; 2nd-half pre-kickoff spells 19 → 2 | §10 |
 | Stoppage-blip gate (R13) | public +0.022, masked +0.008 on `final_v3` | §19 |
 | `final_v2` decoder instead of the rule vote (R14) | +0.025 bench | §20 |
+| One-sided pass of the stoppage gate (R20 → `final_v6`) | bench +0.005, ext −0.002; delivered file public 0.723 → 0.747; 5 spells change, the 3 on labelled frames all spurious | §27–§28 |
 
 ## Not adopted — do not repeat without a new reason
 
@@ -52,6 +54,9 @@ rises ≥ 0.005 and neither ext nor masked falls > 0.005 (ROADMAP rule 1). Locke
 | decoder | hard physical control latch | 0.303 | §26.1 |
 | decoder | out-of-pitch emission boost | 0.000 | §26.1 |
 | decoder | duration priors | null | ROADMAP "Not on the list" |
+| decoder | R20 stoppage gate v2 as specified (walk + no player within 5 m) | −0.0002; matches 0 remaining stoppage spells | §27 |
+| decoder | 4 other stoppage-gate variants (longer, faster pace, slower pace, distance only) | −0.0001 to −0.0004 | §27 |
+| decoder | `min_poss` 25 / 50 / 75 frames on top of the one-sided gate | −0.0006 / −0.015 / −0.079 | §27 |
 | features | velocity-projected pitch control (R8) | screen +0.014, full 0.000 | §13, §15 |
 | features | touch-sequence / kick block for short possessions (R17) | screen +0.040, full +0.001 | §25 |
 | features | carrier tightness; margin dwell; both | full 0.659 / 0.658 / 0.650 | §26.2 |
